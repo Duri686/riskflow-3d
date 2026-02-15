@@ -43,10 +43,10 @@ export const ALGORITHM_CATALOG: AlgorithmMeta[] = [
 	{
 		id: "kalman-filter",
 		title: "卡尔曼滤波",
-		subtitle: "噪声中的信号追踪",
-		description: "注入噪声观测数据，观察滤波器如何实时追踪隐藏的真实信号轨迹。",
-		status: "wip",
-		tags: ["信号", "状态", "估计"],
+		subtitle: "波动率状态估计",
+		description: "将波动率视为隐藏状态，从含噪的日收益率中实时估计真实的波动率轨迹。",
+		status: "ready",
+		tags: ["波动率", "状态空间", "去噪"],
 	},
 ];
 
