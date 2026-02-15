@@ -1,12 +1,12 @@
 import { ALGORITHM_CATALOG, type AlgorithmId } from "../../algorithms/registry";
-import { useLabStore } from "../../store/useLabStore";
+import { useNavigate } from "react-router-dom";
 
 interface AlgorithmNavProps {
 	activeId: AlgorithmId;
 }
 
 export function AlgorithmNav({ activeId }: AlgorithmNavProps) {
-	const { navigateToLab } = useLabStore();
+	const navigate = useNavigate();
 
 	return (
 		<aside className="bg-rf-bg-elevated border border-rf-border rounded-panel p-4 backdrop-blur-sm">
@@ -16,7 +16,7 @@ export function AlgorithmNav({ activeId }: AlgorithmNavProps) {
 					<button
 						type="button"
 						key={item.id}
-						onClick={() => navigateToLab(item.id)}
+						onClick={() => navigate(`/lab/${item.id}`)}
 						className={`cursor-pointer border rounded-btn p-2.5 text-inherit flex justify-between items-center gap-2.5 ${
 							item.id === activeId
 								? "border-rf-border-active bg-[rgba(22,43,63,0.7)]"

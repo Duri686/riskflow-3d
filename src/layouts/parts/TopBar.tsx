@@ -3,7 +3,7 @@ import {
 	type AlgorithmId,
 	type AlgorithmMeta,
 } from "../../algorithms/registry";
-import { useLabStore } from "../../store/useLabStore";
+import { useNavigate } from "react-router-dom";
 
 interface TopBarProps {
 	meta: AlgorithmMeta;
@@ -20,7 +20,9 @@ export function TopBar({
 	onToggleRightPanel,
 	onReset,
 }: TopBarProps) {
-	const { navigateToHub, navigateToLab } = useLabStore();
+	const navigate = useNavigate();
+	const navigateToHub = () => navigate("/");
+	const navigateToLab = (id: AlgorithmId) => navigate(`/lab/${id}`);
 
 	return (
 		<header className="flex shrink-0 items-center gap-3 border-b border-rf-border bg-rf-bg-elevated/80 px-4 py-2 backdrop-blur-md">
