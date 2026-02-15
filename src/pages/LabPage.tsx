@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
 	ALGORITHM_CATALOG,
@@ -9,7 +9,6 @@ import {
 	DEFAULT_ALGORITHM_ID,
 } from "../algorithms/registry";
 import { ReturnDistribution } from "../algorithms/monte-carlo/ReturnDistribution";
-import { ProbabilityCone } from "../algorithms/monte-carlo/ProbabilityCone";
 import { useMonteCarloSession } from "../algorithms/monte-carlo/useSession";
 import { RiskFlowLogo, MaterialIcon } from "../components/Logo";
 
@@ -53,6 +52,38 @@ export function LabPage() {
 		periodYears: 1,
 	});
 
+	// 可选：收盘价序列（用户可粘贴，逗号/空白分隔）
+	const [closeSeriesText, setCloseSeriesText] = useState("");
+
+	const seriesEstimates = useMemo(() => {
+		const tokens = closeSeriesText
+			.split(/[\s,]+/)
+			.map((t) => Number(t))
+			.filter((n) => Number.isFinite(n) && n > 0);
+		if (tokens.length < 2) {
+			return { hasSeries: false as const, sigmaAnn: 0, muAnn: 0 };
+		}
+
+		const rets: number[] = [];
+		for (let i = 1; i < tokens.length; i += 1) {
+			const r = Math.log(tokens[i] / tokens[i - 1]);
+			if (Number.isFinite(r)) rets.push(r);
+		}
+		if (rets.length < 1) {
+			return { hasSeries: false as const, sigmaAnn: 0, muAnn: 0 };
+		}
+		const mean = rets.reduce((a, b) => a + b, 0) / rets.length;
+		const varDaily =
+			rets.reduce((sum, v) => {
+				const d = v - mean;
+				return sum + d * d;
+			}, 0) / Math.max(1, rets.length - 1);
+		const sigmaDaily = Math.sqrt(varDaily);
+		const sigmaAnn = sigmaDaily * Math.sqrt(252);
+		const muAnn = mean * 252;
+		return { hasSeries: true as const, sigmaAnn, muAnn };
+	}, [closeSeriesText]);
+
 	// 计算估算波动率
 	const estimatedVolatility = (() => {
 		const { highPrice, lowPrice, periodYears } = historyData;
@@ -67,17 +98,18 @@ export function LabPage() {
 		const { highPrice, lowPrice, periodYears } = historyData;
 		if (highPrice <= lowPrice || lowPrice <= 0) return;
 
-		const currentPrice = monteCarlo.input.initialPrice;
-		const midPrice = (highPrice + lowPrice) / 2;
-		const impliedReturn = (midPrice - currentPrice) / currentPrice / periodYears;
+		// μ 默认 0（除非有收盘序列）
+
+		const vol = seriesEstimates.hasSeries ? seriesEstimates.sigmaAnn : estimatedVolatility;
+		const mu = seriesEstimates.hasSeries ? seriesEstimates.muAnn : 0;
 
 		monteCarlo.updateMultipleInputs({
-			volatility: Math.min(0.8, Math.max(0.05, estimatedVolatility)),
-			drift: Math.min(0.3, Math.max(0, impliedReturn)),
+			volatility: Math.min(2, Math.max(0.05, vol)),
+			drift: Math.min(0.3, Math.max(-0.3, mu)),
 			years: periodYears,
 		});
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [historyData.highPrice, historyData.lowPrice, historyData.periodYears]);
+	}, [historyData.highPrice, historyData.lowPrice, historyData.periodYears, closeSeriesText]);
 
 	return (
 		<div className="flex h-screen w-full flex-col bg-rf-bg pt-14 font-body text-white selection:bg-rf-primary selection:text-white">
@@ -172,17 +204,7 @@ export function LabPage() {
 						<div className="relative flex-1 flex flex-col gap-2 p-4 min-h-0 overflow-hidden">
 							{isMonteCarlo ? (
 								<>
-									{/* 概率锥（价格置信区间）- 占 35% 高度 */}
-									<div className="h-[35%] min-h-0">
-										<ProbabilityCone
-											stepStats={monteCarlo.state.cloud.stepStats}
-											initialPrice={monteCarlo.input.initialPrice}
-											currentStep={monteCarlo.state.currentStep}
-											totalSteps={monteCarlo.input.steps}
-										/>
-									</div>
-									{/* 收益分布直方图 - 占 65% 高度 */}
-									<div className="h-[65%] min-h-0">
+									<div className="h-full min-h-0">
 										<ReturnDistribution
 											key={`${monteCarlo.input.seed}`}
 											terminalPrices={monteCarlo.terminalPrices}
@@ -290,6 +312,16 @@ export function LabPage() {
 									className="w-full border-b border-white/30 bg-transparent px-1 py-0.5 font-mono text-[11px] text-white outline-none"
 								/>
 							</div>
+							<div>
+								<label className="font-mono text-[9px] text-gray-500">收盘价序列（可选，逗号/空格分隔）</label>
+								<textarea
+									value={closeSeriesText}
+									onChange={(e) => setCloseSeriesText(e.target.value)}
+									rows={3}
+									placeholder="例如：3.4, 3.6, 3.2, 3.3, 3.8"
+									className="w-full resize-y border-b border-white/30 bg-transparent px-1 py-0.5 font-mono text-[10px] text-white outline-none"
+								/>
+							</div>
 							<div className="rounded bg-rf-primary/10 border border-rf-primary/30 py-1.5 text-center font-mono text-[9px] text-rf-primary/70">
 								✓ 自动联动模拟参数
 							</div>
@@ -392,7 +424,7 @@ export function LabPage() {
 								</div>
 								<input
 									type="range"
-									min={0}
+									min={-30}
 									max={30}
 									value={monteCarlo.input.drift * 100}
 									onChange={(e) => monteCarlo.updateInput("drift", Number(e.target.value) / 100)}
@@ -408,7 +440,7 @@ export function LabPage() {
 								<input
 									type="range"
 									min={5}
-									max={80}
+									max={200}
 									value={monteCarlo.input.volatility * 100}
 									onChange={(e) => monteCarlo.updateInput("volatility", Number(e.target.value) / 100)}
 									className="w-full"
@@ -436,9 +468,9 @@ export function LabPage() {
 								</span>
 							</div>
 							<div className="flex items-center justify-between font-mono text-[10px]">
-								<span className="text-rf-text-secondary">预期收益</span>
-								<span className={`font-semibold ${monteCarlo.metrics.final.expectedReturn >= 0 ? 'text-[#FF4757]' : 'text-[#00D4AA]'}`}>
-									{monteCarlo.metrics.final.expectedReturn > 0 ? '+' : ''}{(monteCarlo.metrics.final.expectedReturn * 100).toFixed(1)}%
+								<span className="text-rf-text-secondary">中位数收益 (P50)</span>
+								<span className={`font-semibold ${monteCarlo.metrics.final.medianReturn >= 0 ? 'text-[#FF4757]' : 'text-[#00D4AA]'}`}>
+									{monteCarlo.metrics.final.medianReturn > 0 ? '+' : ''}{(monteCarlo.metrics.final.medianReturn * 100).toFixed(1)}%
 								</span>
 							</div>
 							<div className="flex items-center justify-between font-mono text-[10px]">
@@ -450,8 +482,8 @@ export function LabPage() {
 								<span className="font-semibold text-[#FF4757]">{(monteCarlo.metrics.final.expectedShortfall95 * 100).toFixed(1)}%</span>
 							</div>
 							<div className="flex items-center justify-between font-mono text-[10px]">
-								<span className="text-rf-text-secondary">亏损概率</span>
-								<span className="text-rf-text">{(monteCarlo.metrics.final.lossProbability * 100).toFixed(1)}%</span>
+								<span className="text-rf-text-secondary">胜率</span>
+								<span className="text-rf-text">{((1 - monteCarlo.metrics.final.lossProbability) * 100).toFixed(1)}%</span>
 							</div>
 						</div>
 					</div>

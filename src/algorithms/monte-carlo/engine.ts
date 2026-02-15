@@ -21,10 +21,13 @@ export interface MonteCarloStepStat {
 
 interface MonteCarloRiskMetrics {
   expectedReturn: number
+  medianReturn: number
   volatility: number
   var95: number
   expectedShortfall95: number
   lossProbability: number
+  p95Return: number
+  upDownRatio: number
 }
 
 interface MonteCarloCloudData {
@@ -144,7 +147,9 @@ const calculateRiskMetrics = (terminalPrices: number[], initialPrice: number): M
 
   const volatility = Math.sqrt(variance)
   const sortedReturns = [...returns].sort((a, b) => a - b)
+  const medianReturn = quantile(sortedReturns, 0.5)
   const var95 = quantile(sortedReturns, 0.05)
+  const p95Return = quantile(sortedReturns, 0.95)
 
   let tailTotal = 0
   let tailCount = 0
@@ -157,13 +162,18 @@ const calculateRiskMetrics = (terminalPrices: number[], initialPrice: number): M
 
   const expectedShortfall95 = tailCount > 0 ? tailTotal / tailCount : var95
   const lossCount = returns.filter((value) => value < 0).length
+  const denom = Math.max(1e-12, Math.abs(expectedShortfall95))
+  const upDownRatio = p95Return > 0 ? p95Return / denom : 0
 
   return {
     expectedReturn,
+    medianReturn,
     volatility,
     var95,
     expectedShortfall95,
     lossProbability: lossCount / returns.length,
+    p95Return,
+    upDownRatio,
   }
 }
 

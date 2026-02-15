@@ -15,7 +15,9 @@ interface DistributionData {
     p05: number
     p95: number
     var95: number
+    cvar95: number
     profitProbability: number
+    upDownRatio: number
     maxGain: number
     maxLoss: number
   }
@@ -53,8 +55,12 @@ function calculateDistribution(
   const p05 = sorted[Math.floor(n * 0.05)]
   const p95 = sorted[Math.floor(n * 0.95)]
   const var95 = -p05
+  const tailCount = Math.max(1, Math.floor(n * 0.05))
+  const tail = sorted.slice(0, tailCount)
+  const cvar95 = tail.reduce((a, b) => a + b, 0) / tail.length
   const profitCount = returns.filter((r) => r > 0).length
   const profitProbability = (profitCount / n) * 100
+  const upDownRatio = p95 > 0 && cvar95 < 0 ? (p95 / Math.abs(cvar95)) : 0
 
   const densityCurve: { x: number; y: number }[] = []
   const bandwidth = range / 15
@@ -77,7 +83,9 @@ function calculateDistribution(
       p05,
       p95,
       var95,
+      cvar95,
       profitProbability,
+      upDownRatio,
       maxGain: max,
       maxLoss: min,
     },
@@ -104,7 +112,7 @@ export function ReturnDistribution({
   const chartWidth = width - padding.left - padding.right
   const chartHeight = height - padding.top - padding.bottom
 
-  const xMin = Math.min(stats.p05 - 10, -50)
+  const xMin = Math.min(Math.min(stats.p05, stats.cvar95) - 10, -50)
   const xMax = Math.max(stats.p95 + 10, 50)
   const xScale = (x: number) => padding.left + ((x - xMin) / (xMax - xMin)) * chartWidth
 
@@ -119,9 +127,10 @@ export function ReturnDistribution({
     .join(' ')
 
   const zeroX = xScale(0)
-  const var95X = xScale(-stats.var95)
+  const p05X = xScale(stats.p05)
   const p95X = xScale(stats.p95)
-  const meanX = xScale(stats.mean)
+  const medianX = xScale(stats.median)
+  const cvar95X = xScale(stats.cvar95)
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -204,18 +213,32 @@ export function ReturnDistribution({
           盈亏平衡
         </text>
 
-        {/* VaR 95% 标注（最大亏损/绿色） */}
+        {/* P5 标注（5%分位/绿色） */}
         <line
-          x1={var95X}
+          x1={p05X}
           y1={padding.top}
-          x2={var95X}
+          x2={p05X}
           y2={padding.top + chartHeight}
           stroke="#00D4AA"
           strokeWidth={2}
           filter="url(#glow)"
         />
-        <text x={var95X} y={padding.top - 10} fill="#00D4AA" fontSize={10} textAnchor="middle">
-          VaR 95%: {stats.var95.toFixed(1)}%
+        <text x={p05X} y={padding.top - 10} fill="#00D4AA" fontSize={10} textAnchor="middle">
+          P5: {stats.p05.toFixed(1)}%
+        </text>
+
+        {/* CVaR 95% 标注（极端亏损均值/绿色虚线） */}
+        <line
+          x1={cvar95X}
+          y1={padding.top}
+          x2={cvar95X}
+          y2={padding.top + chartHeight}
+          stroke="#00D4AA"
+          strokeWidth={1.5}
+          strokeDasharray="3,3"
+        />
+        <text x={cvar95X} y={padding.top - 10} fill="#00D4AA" fontSize={10} textAnchor="middle">
+          CVaR95: {stats.cvar95.toFixed(1)}%
         </text>
 
         {/* P95 标注（最大盈利/红色） */}
@@ -232,17 +255,17 @@ export function ReturnDistribution({
           P95: +{stats.p95.toFixed(1)}%
         </text>
 
-        {/* 均值标注 */}
+        {/* 中位数 (P50) 标注 */}
         <line
-          x1={meanX}
-          y1={padding.top + 20}
-          x2={meanX}
+          x1={medianX}
+          y1={padding.top}
+          x2={medianX}
           y2={padding.top + chartHeight}
-          stroke="#FBBF24"
-          strokeWidth={1.5}
+          stroke="#E5E7EB"
+          strokeWidth={2}
         />
-        <text x={meanX} y={padding.top + 15} fill="#FBBF24" fontSize={10} textAnchor="middle">
-          均值: {stats.mean > 0 ? '+' : ''}{stats.mean.toFixed(1)}%
+        <text x={medianX} y={padding.top - 10} fill="#E5E7EB" fontSize={10} textAnchor="middle">
+          P50: {stats.median > 0 ? '+' : ''}{stats.median.toFixed(1)}%
         </text>
 
         {/* X轴 */}
@@ -296,47 +319,40 @@ export function ReturnDistribution({
           概率密度
         </text>
 
-        {/* 右侧统计面板 */}
+        {/* 右侧统计面板（决策三联表） */}
         <g transform={`translate(${width - padding.right + 10}, ${padding.top})`}>
           <text x={0} y={0} fill="#E5E7EB" fontSize={11} fontWeight="600" letterSpacing="0.05em">
-            关键指标
+            决策指标
           </text>
 
-          {/* 赚钱概率 - 大字突出 */}
-          <text x={0} y={35} fill={stats.profitProbability >= 50 ? '#FF4757' : '#00D4AA'} fontSize={28} fontWeight="bold">
-            {stats.profitProbability.toFixed(0)}%
-          </text>
-          <text x={0} y={52} fill="#6B7280" fontSize={9}>
-            赚钱概率
+          {/* 胜率 */}
+          <text x={0} y={26} fill={stats.profitProbability >= 55 ? '#FF4757' : '#00D4AA'} fontSize={16} fontWeight="600">
+            胜率 {stats.profitProbability.toFixed(0)}%
           </text>
 
-          {/* P95 最好情况 - 红色上涨 */}
-          <text x={0} y={90} fill="#FF4757" fontSize={16} fontWeight="600">
-            +{stats.p95.toFixed(1)}%
-          </text>
-          <text x={0} y={105} fill="#4B5563" fontSize={9}>
-            最好情况 (P95)
+          {/* 中位数收益 P50 */}
+          <text x={0} y={52} fill={stats.median >= 0 ? '#FF4757' : '#00D4AA'} fontSize={12} fontWeight="600">
+            P50 {stats.median > 0 ? '+' : ''}{stats.median.toFixed(1)}%
           </text>
 
-          {/* P05 最坏情况 - 绿色下跌 */}
-          <text x={0} y={140} fill="#00D4AA" fontSize={16} fontWeight="600">
-            {stats.p05.toFixed(1)}%
-          </text>
-          <text x={0} y={155} fill="#4B5563" fontSize={9}>
-            最坏情况 (P5)
+          {/* CVaR95 */}
+          <text x={0} y={78} fill="#00D4AA" fontSize={12} fontWeight="600">
+            CVaR95 {stats.cvar95.toFixed(1)}%
           </text>
 
-          {/* 预期收益 - 根据正负显示颜色 */}
-          <text x={0} y={190} fill={stats.mean >= 0 ? '#FF4757' : '#00D4AA'} fontSize={16} fontWeight="600">
-            {stats.mean > 0 ? '+' : ''}{stats.mean.toFixed(1)}%
-          </text>
-          <text x={0} y={205} fill="#4B5563" fontSize={9}>
-            预期收益
+          {/* P95 */}
+          <text x={0} y={104} fill="#FF4757" fontSize={12} fontWeight="600">
+            P95 +{stats.p95.toFixed(1)}%
           </text>
 
-          <rect x={0} y={225} width={70} height={1} fill="#374151" />
+          {/* 盈亏比 */}
+          <text x={0} y={130} fill="#E5E7EB" fontSize={12} fontWeight="600">
+            盈亏比 {stats.upDownRatio.toFixed(2)}
+          </text>
 
-          <text x={0} y={245} fill="#6B7280" fontSize={9}>
+          <rect x={0} y={150} width={90} height={1} fill="#374151" />
+
+          <text x={0} y={170} fill="#6B7280" fontSize={9}>
             模拟路径: {paths}
           </text>
         </g>
