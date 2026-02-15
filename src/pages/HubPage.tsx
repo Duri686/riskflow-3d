@@ -12,7 +12,6 @@ import {
 	Terminal,
 	Wrench,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import {
 	ALGORITHM_CATALOG,
 	ALGORITHM_SHORTCUTS,
@@ -71,6 +70,7 @@ function BrandMark() {
 export function HubPage() {
 	const {
 		globalUi: { recentAlgorithms },
+		navigateToLab,
 	} = useLabStore();
 
 	return (
@@ -133,14 +133,15 @@ export function HubPage() {
 
 					{/* CTA 按钮 — 荧光青边框 */}
 					<div className="mt-10 2xl:mt-12">
-						<Link
-							className="rf-pill-hover group inline-flex items-center gap-2.5 rounded-sm border border-rf-primary/40 bg-rf-primary/8 px-7 py-3 font-mono text-sm font-semibold text-rf-text no-underline transition-colors hover:bg-rf-primary/15"
-							to={`/lab/${DEFAULT_ALGORITHM_ID}`}
+						<button
+							type="button"
+							onClick={() => navigateToLab(DEFAULT_ALGORITHM_ID)}
+							className="rf-pill-hover group inline-flex cursor-pointer items-center gap-2.5 rounded-sm border border-rf-primary/40 bg-rf-primary/8 px-7 py-3 font-mono text-sm font-semibold text-rf-text transition-colors hover:bg-rf-primary/15"
 						>
 							<Terminal className="h-4 w-4 text-rf-primary" strokeWidth={2} />
 							<span>进入实验室</span>
 							<ArrowRight className="h-3.5 w-3.5 text-rf-primary transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
-						</Link>
+						</button>
 					</div>
 
 					{/* 能力标签 */}
@@ -170,10 +171,11 @@ export function HubPage() {
 							const AlgorithmIcon = algorithmIconById[algo.id];
 
 							return (
-								<Link
+								<button
+									type="button"
 									key={algo.id}
-									className={`rf-card-hover rf-glow-hover rf-reveal rf-stagger-${index + 1} group flex gap-4 p-5 no-underline text-inherit 2xl:p-6`}
-									to={`/lab/${algo.id}`}
+									onClick={() => navigateToLab(algo.id)}
+									className={`rf-card-hover rf-glow-hover rf-reveal rf-stagger-${index + 1} group flex cursor-pointer gap-4 p-5 text-left 2xl:p-6`}
 								>
 									{/* 左侧图标 */}
 									<div className="rf-icon-accent grid h-11 w-11 shrink-0 place-items-center rounded-lg">
@@ -225,7 +227,7 @@ export function HubPage() {
 											))}
 										</div>
 									</div>
-								</Link>
+								</button>
 							);
 						})}
 					</div>
@@ -241,12 +243,13 @@ export function HubPage() {
 							return (
 								<span key={id} className="inline-flex items-center">
 									{i > 0 && <span className="mx-1 text-rf-text-dim/50">·</span>}
-									<Link
-										className="text-rf-text no-underline transition-colors hover:text-rf-primary"
-										to={`/lab/${id}`}
+									<button
+										type="button"
+										onClick={() => navigateToLab(id)}
+										className="cursor-pointer border-none bg-transparent p-0 text-rf-text transition-colors hover:text-rf-primary"
 									>
 										{meta.title}
-									</Link>
+									</button>
 								</span>
 							);
 						})}

@@ -1,11 +1,8 @@
 import { useEffect, useMemo } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
 	ALGORITHM_SHORTCUTS,
-	DEFAULT_ALGORITHM_ID,
 	type AlgorithmId,
 	getAlgorithmMeta,
-	isAlgorithmId,
 } from "../algorithms/registry";
 import { MonteCarloMetrics } from "../algorithms/monte-carlo/MetricsPanel";
 import { MonteCarloParamsPanel } from "../algorithms/monte-carlo/ParamsPanel";
@@ -21,14 +18,6 @@ import {
 } from "../store/types";
 
 export function LabPage() {
-	const params = useParams<{ algorithmId: string }>();
-	const navigate = useNavigate();
-	const rawAlgorithmId = params.algorithmId;
-	const resolvedAlgorithmId: AlgorithmId | null =
-		rawAlgorithmId && isAlgorithmId(rawAlgorithmId) ? rawAlgorithmId : null;
-	const isValidAlgorithm = resolvedAlgorithmId !== null;
-	const algorithmId: AlgorithmId = resolvedAlgorithmId ?? DEFAULT_ALGORITHM_ID;
-
 	const {
 		globalUi,
 		getSession,
@@ -36,7 +25,10 @@ export function LabPage() {
 		resetSession,
 		setRightPanelCollapsed,
 		upsertSession,
+		navigateToLab,
 	} = useLabStore();
+
+	const algorithmId: AlgorithmId = globalUi.currentAlgorithmId;
 
 	const monteCarlo = useMonteCarloSession();
 	const { restoreSession, getSnapshot } = monteCarlo;
@@ -49,13 +41,12 @@ export function LabPage() {
 
 	// 1) 仅在算法切换时记录最近访问，避免函数引用变更导致的重复触发
 	useEffect(() => {
-		if (!isValidAlgorithm) return;
 		markRecent(algorithmId);
-	}, [algorithmId, isValidAlgorithm, markRecent]);
+	}, [algorithmId, markRecent]);
 
 	// 2) 仅处理蒙特卡洛的会话恢复/持久化，避免依赖不稳定对象引用造成循环
 	useEffect(() => {
-		if (!isValidAlgorithm || algorithmId !== "monte-carlo") return;
+		if (algorithmId !== "monte-carlo") return;
 		// 恢复会话（进入页面时）
 		restoreSession(activeSession?.monteCarlo);
 		return () => {
@@ -66,7 +57,6 @@ export function LabPage() {
 		};
 	}, [
 		algorithmId,
-		isValidAlgorithm,
 		activeSession?.monteCarlo,
 		upsertSession,
 		restoreSession,
@@ -85,12 +75,12 @@ export function LabPage() {
 			}
 
 			event.preventDefault();
-			navigate(`/lab/${targetAlgorithmId}`);
+			navigateToLab(targetAlgorithmId);
 		};
 
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [navigate]);
+	}, [navigateToLab]);
 
 	const togglePanelSection = (key: keyof PanelSectionsState) => {
 		upsertSession(algorithmId, {
@@ -146,10 +136,6 @@ export function LabPage() {
 		}
 		return <WipFallback title={currentMeta.title} algorithmId={algorithmId} />;
 	}, [algorithmId, currentMeta.title, isMonteCarlo, monteCarlo.isPlaying, monteCarlo.renderLayer, timelineProgress]);
-
-	if (!isValidAlgorithm) {
-		return <Navigate to={`/lab/${DEFAULT_ALGORITHM_ID}`} replace />;
-	}
 
 	return (
 		<div className="flex h-screen flex-col">

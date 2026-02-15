@@ -20,7 +20,11 @@ export interface AlgorithmSessionState {
 	updatedAt: number;
 }
 
+export type ViewType = "hub" | "lab";
+
 export interface GlobalUiState {
+	currentView: ViewType;
+	currentAlgorithmId: AlgorithmId;
 	rightPanelCollapsed: boolean;
 	timelineVisible: boolean;
 	recentAlgorithms: AlgorithmId[];

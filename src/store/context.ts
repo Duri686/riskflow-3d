@@ -5,6 +5,8 @@ import type { AlgorithmSessionState, GlobalUiState } from "./types";
 export interface LabStoreValue {
 	globalUi: GlobalUiState;
 	sessions: Partial<Record<AlgorithmId, AlgorithmSessionState>>;
+	navigateToHub: () => void;
+	navigateToLab: (algorithmId: AlgorithmId) => void;
 	setRightPanelCollapsed: (collapsed: boolean) => void;
 	setTimelineVisible: (visible: boolean) => void;
 	markRecent: (algorithmId: AlgorithmId) => void;
