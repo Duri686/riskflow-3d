@@ -3,7 +3,9 @@
  * 免 API Key，通过 Vite 代理访问
  */
 
-const BINANCE_API = '/binance-api/klines'
+const BINANCE_API = import.meta.env.DEV
+  ? '/binance-api/klines'
+  : 'https://api.binance.com/api/v3/klines'
 
 /** 市值前 20 交易对（排除稳定币） */
 export const SYMBOL_OPTIONS = [
