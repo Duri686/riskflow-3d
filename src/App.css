@@ -3,61 +3,68 @@
 /*
  * RiskFlow 3D — Design Tokens
  * Tailwind CSS v4 CSS-first configuration
- * 视觉方案：能量网格 (The Kinetic Grid)
+ * 视觉方案：Violet Bloom 紫色绽放
  */
 @theme {
-  /* 深色科技背景色系 — 极深靛蓝基底 */
-  --color-rf-bg: #05080F;
-  --color-rf-bg-elevated: rgba(8, 14, 26, 0.74);
-  --color-rf-bg-card: rgba(255, 255, 255, 0.03);
-  --color-rf-bg-section: rgba(14, 34, 52, 0.9);
-  --color-rf-bg-section-body: rgba(9, 22, 34, 0.6);
+  /* 深色背景色系 — Violet Bloom 深邃基底 */
+  --color-rf-bg: #1a1b1e;
+  --color-rf-bg-elevated: #222327;
+  --color-rf-bg-card: #222327;
+  --color-rf-bg-section: #1e1f23;
+  --color-rf-bg-section-body: #19191c;
 
-  /* 边框色系 — 超细能量线 */
-  --color-rf-border: rgba(255, 255, 255, 0.08);
-  --color-rf-border-hover: rgba(0, 255, 157, 0.5);
-  --color-rf-border-active: rgba(0, 255, 157, 0.7);
-  --color-rf-border-btn: rgba(255, 255, 255, 0.12);
-  --color-rf-border-btn-hover: rgba(0, 255, 157, 0.5);
+  /* 边框色系 — 精致细线 */
+  --color-rf-border: #33353a;
+  --color-rf-border-hover: rgba(140, 92, 255, 0.5);
+  --color-rf-border-active: rgba(140, 92, 255, 0.7);
+  --color-rf-border-btn: #33353a;
+  --color-rf-border-btn-hover: rgba(140, 92, 255, 0.5);
 
-  /* 文字色系 — 高对比度白/灰白 */
-  --color-rf-text: rgba(255, 255, 255, 0.9);
-  --color-rf-text-secondary: #94A3B8;
-  --color-rf-text-muted: #64748B;
-  --color-rf-text-dim: #475569;
-  --color-rf-text-label: #CBD5E1;
-  --color-rf-text-link: #94A3B8;
-  --color-rf-text-nav: #64748B;
-  --color-rf-text-nav-em: #94A3B8;
+  /* 文字色系 — 高对比度层级 */
+  --color-rf-text: #f0f0f0;
+  --color-rf-text-secondary: #a0a0a0;
+  --color-rf-text-muted: #6b6b6b;
+  --color-rf-text-dim: #505050;
+  --color-rf-text-label: #d0d0d0;
+  --color-rf-text-link: #79c0ff;
+  --color-rf-text-nav: #6b6b6b;
+  --color-rf-text-nav-em: #a0a0a0;
 
   /* 状态色 */
-  --color-rf-ready: #00FF9D;
-  --color-rf-ready-bg: rgba(0, 255, 157, 0.1);
-  --color-rf-wip: #FFB224;
-  --color-rf-wip-bg: rgba(255, 178, 36, 0.1);
+  --color-rf-ready: #4ade80;
+  --color-rf-ready-bg: rgba(74, 222, 128, 0.1);
+  --color-rf-wip: #fca5a5;
+  --color-rf-wip-bg: rgba(252, 165, 165, 0.1);
 
-  /* 强调色 — 荧光青 + 量化蓝 */
-  --color-rf-accent: #2E5BFF;
-  --color-rf-primary: #00FF9D;
-  --color-rf-gradient-start: #00FF9D;
-  --color-rf-gradient-end: #2E5BFF;
+  /* 强调色 — Violet 紫 + Cyan 青 */
+  --color-rf-primary: #8c5cff;
+  --color-rf-accent: #79c0ff;
+  --color-rf-gradient-start: #8c5cff;
+  --color-rf-gradient-end: #5993f4;
+
+  /* 图表色彩系统 */
+  --color-rf-chart-1: #4ade80;
+  --color-rf-chart-2: #8c5cff;
+  --color-rf-chart-3: #fca5a5;
+  --color-rf-chart-4: #5993f4;
+  --color-rf-chart-5: #a0a0a0;
 
   /* 按钮渐变 */
-  --color-rf-btn-from: rgba(0, 255, 157, 0.15);
-  --color-rf-btn-to: rgba(0, 255, 157, 0.05);
+  --color-rf-btn-from: rgba(140, 92, 255, 0.15);
+  --color-rf-btn-to: rgba(140, 92, 255, 0.05);
 
   /* HUD */
-  --color-rf-hud-bg: rgba(5, 8, 15, 0.85);
-  --color-rf-hud-border: rgba(255, 255, 255, 0.08);
+  --color-rf-hud-bg: rgba(26, 27, 30, 0.92);
+  --color-rf-hud-border: #33353a;
 
   /* 进度条 */
   --color-rf-progress-track: rgba(255, 255, 255, 0.06);
 
   /* 3D 场景 */
-  --color-rf-scene-bg: #030610;
+  --color-rf-scene-bg: #161618;
 
-  /* 字体 — 硬朗且现代 */
-  --font-sans: 'JetBrains Mono', 'SF Mono', 'PingFang SC', 'Microsoft YaHei', monospace;
+  /* 字体 — 现代几何风格 */
+  --font-sans: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-display: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
 
@@ -65,19 +72,19 @@
   --spacing-112: 28rem;
   --spacing-144: 36rem;
 
-  /* 圆角 — 适中且现代 */
+  /* 圆角 — 柔和现代 */
   --radius-panel: 12px;
   --radius-card: 12px;
-  --radius-btn: 4px;
+  --radius-btn: 8px;
   --radius-pill: 999px;
-  --radius-tag: 4px;
+  --radius-tag: 6px;
 }
 
 /* 全局基础样式 */
 @layer base {
   :root {
     color: var(--color-rf-text);
-    background: #05080F;
+    background: #1a1b1e;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -211,8 +218,8 @@
 
   .rf-icon-accent {
     color: var(--color-rf-primary);
-    border: 1px solid rgba(0, 255, 157, 0.2);
-    background: rgba(0, 255, 157, 0.06);
+    border: 1px solid rgba(140, 92, 255, 0.25);
+    background: rgba(140, 92, 255, 0.08);
   }
 
   @keyframes rf-reveal {
@@ -303,7 +310,7 @@
     opacity: 0;
     background: radial-gradient(
       600px circle at 50% 50%,
-      rgba(0, 255, 157, 0.06) 0%,
+      rgba(140, 92, 255, 0.08) 0%,
       transparent 60%
     );
     transition: opacity 480ms cubic-bezier(0.2, 0.9, 0.2, 1);
@@ -311,8 +318,8 @@
 
   .rf-card-hover:hover {
     transform: translateY(-4px);
-    border-color: transparent;
-    box-shadow: 0 0 30px rgba(0, 255, 157, 0.15);
+    border-color: rgba(140, 92, 255, 0.4);
+    box-shadow: 0 0 30px rgba(140, 92, 255, 0.12);
   }
 
   .rf-card-hover:hover::before {
@@ -334,9 +341,9 @@
     opacity: 0;
     background: linear-gradient(
       135deg,
-      rgba(0, 255, 157, 0.5) 0%,
-      rgba(46, 91, 255, 0.3) 50%,
-      rgba(0, 255, 157, 0.2) 100%
+      rgba(140, 92, 255, 0.5) 0%,
+      rgba(89, 147, 244, 0.3) 50%,
+      rgba(140, 92, 255, 0.2) 100%
     );
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
@@ -365,8 +372,8 @@
 
   .rf-pill-hover:hover {
     transform: translateY(-1px);
-    border-color: rgba(0, 255, 157, 0.5);
-    box-shadow: 0 0 20px rgba(0, 255, 157, 0.1);
+    border-color: rgba(140, 92, 255, 0.5);
+    box-shadow: 0 0 20px rgba(140, 92, 255, 0.15);
   }
 
   /* 网格背景 — CSS 实现，4K 清晰 */

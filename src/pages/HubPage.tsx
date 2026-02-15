@@ -32,7 +32,7 @@ const algorithmIconById: Record<AlgorithmId, LucideIcon> = {
 	"kalman-filter": Activity,
 };
 
-/* 品牌标识 — 荧光青配色 */
+/* 品牌标识 — Violet Bloom 紫色渐变 */
 function BrandMark() {
 	return (
 		<svg
@@ -45,8 +45,8 @@ function BrandMark() {
 			<title>RiskFlow 品牌标识</title>
 			<defs>
 				<linearGradient id="rf-brand-stroke" x1="4" x2="20" y1="18" y2="6">
-					<stop offset="0" stopColor="#00FF9D" />
-					<stop offset="1" stopColor="#2E5BFF" />
+					<stop offset="0" stopColor="#8c5cff" />
+					<stop offset="1" stopColor="#5993f4" />
 				</linearGradient>
 			</defs>
 			<path
@@ -59,7 +59,7 @@ function BrandMark() {
 			<circle cx="19.4" cy="6.8" fill="url(#rf-brand-stroke)" r="2" />
 			<path
 				d="M4 20H20"
-				stroke="rgba(255,255,255,0.12)"
+				stroke="rgba(255,255,255,0.08)"
 				strokeLinecap="round"
 				strokeWidth="1.4"
 			/>
@@ -79,10 +79,10 @@ export function HubPage() {
 			<div className="pointer-events-none absolute inset-0">
 				{/* CSS 网格 — 4K 清晰 */}
 				<div className="rf-grid-bg rf-grid-enter absolute inset-0" />
-				{/* 顶部环境光 — 极淡荧光青 */}
-				<div className="absolute -top-32 left-1/2 h-96 w-full max-w-3xl -translate-x-1/2 rounded-full bg-rf-primary/4 blur-3xl" />
-				{/* 底部量化蓝环境光 */}
-				<div className="absolute -bottom-48 left-1/2 h-80 w-full max-w-2xl -translate-x-1/2 rounded-full bg-rf-accent/3 blur-3xl" />
+				{/* 顶部环境光 — Violet 紫色光晕 */}
+				<div className="absolute -top-32 left-1/2 h-96 w-full max-w-3xl -translate-x-1/2 rounded-full bg-rf-primary/6 blur-3xl" />
+				{/* 底部青色环境光 */}
+				<div className="absolute -bottom-48 left-1/2 h-80 w-full max-w-2xl -translate-x-1/2 rounded-full bg-rf-accent/5 blur-3xl" />
 			</div>
 
 			<div className="relative mx-auto max-w-5xl px-6 py-10 2xl:px-8 2xl:py-14">
@@ -97,7 +97,7 @@ export function HubPage() {
 						</span>
 					</div>
 					<div className="flex items-center gap-4">
-						<span className="rounded-sm border border-rf-border px-2 py-0.5 font-mono text-xs text-rf-text-dim">
+						<span className="rounded-md bg-rf-primary/10 px-2.5 py-1 font-mono text-xs font-medium text-rf-primary">
 							Phase 1
 						</span>
 						<a
@@ -131,12 +131,12 @@ export function HubPage() {
 						</span>
 					</p>
 
-					{/* CTA 按钮 — 荧光青边框 */}
+					{/* CTA 按钮 — Violet 紫色边框 */}
 					<div className="mt-10 2xl:mt-12">
 						<button
 							type="button"
 							onClick={() => navigateToLab(DEFAULT_ALGORITHM_ID)}
-							className="rf-pill-hover group inline-flex cursor-pointer items-center gap-2.5 rounded-sm border border-rf-primary/40 bg-rf-primary/8 px-7 py-3 font-mono text-sm font-semibold text-rf-text transition-colors hover:bg-rf-primary/15"
+							className="rf-pill-hover group inline-flex cursor-pointer items-center gap-2.5 rounded-lg border border-rf-primary/40 bg-rf-primary/10 px-7 py-3 font-sans text-sm font-semibold text-rf-text transition-colors hover:bg-rf-primary/18"
 						>
 							<Terminal className="h-4 w-4 text-rf-primary" strokeWidth={2} />
 							<span>进入实验室</span>
@@ -149,11 +149,11 @@ export function HubPage() {
 						{[
 							{ icon: Sparkles, label: "参数实验", color: "text-rf-primary" },
 							{ icon: PieChart, label: "3D 可视化", color: "text-rf-accent" },
-							{ icon: Activity, label: "实时演化", color: "text-rf-primary" },
+							{ icon: Activity, label: "实时演化", color: "text-rf-chart-1" },
 						].map(({ icon: Icon, label, color }) => (
 							<span
 								key={label}
-								className="inline-flex items-center gap-1.5 rounded-sm border border-rf-border px-2.5 py-1 font-mono text-xs text-rf-text-muted"
+								className="inline-flex items-center gap-1.5 rounded-md border border-rf-border bg-rf-bg-card px-2.5 py-1 font-sans text-xs text-rf-text-secondary"
 							>
 								<Icon className={`h-3 w-3 ${color}`} strokeWidth={2} />
 								{label}
@@ -204,7 +204,7 @@ export function HubPage() {
 												{isReady ? "就绪" : "开发中"}
 											</span>
 											{shortcut && (
-												<span className="ml-auto rounded-sm border border-rf-border px-1.5 py-0.5 font-mono text-xs text-rf-text-dim">
+												<span className="ml-auto rounded-md bg-rf-bg/60 px-1.5 py-0.5 font-mono text-xs text-rf-text-muted">
 													x{shortcut}
 												</span>
 											)}
@@ -220,7 +220,7 @@ export function HubPage() {
 											{algo.tags.map((tag) => (
 												<span
 													key={tag}
-													className="rounded-sm border border-rf-border px-2 py-0.5 font-mono text-xs text-rf-text-dim"
+													className="rounded-md bg-rf-bg/60 px-2 py-0.5 font-mono text-xs text-rf-text-muted"
 												>
 													{tag}
 												</span>
