@@ -1,8 +1,9 @@
 import { useCallback, useState } from "react";
 import { Gauge, Settings, ChevronDown, ChevronRight } from "lucide-react";
-import { DataInputPanel } from "../../../../components/DataInputPanel";
+import { DataInputPanel } from "@/components/DataInputPanel";
 import { RiskCard } from "./RiskCard";
-import type { useMonteCarloSession } from "../../../../algorithms/monte-carlo/useSession";
+import type { useMonteCarloSession } from "@/algorithms/monte-carlo/useSession";
+import { TRADING_DAYS_PER_YEAR } from "@/algorithms/monte-carlo/constants";
 
 interface SidebarProps {
   session: ReturnType<typeof useMonteCarloSession>;
@@ -67,9 +68,9 @@ export function Sidebar({ session }: SidebarProps) {
             </div>
             <div className="flex gap-1.5">
               {[
-                { label: "30天", days: 30, years: 30 / 365 },
-                { label: "90天", days: 90, years: 90 / 365 },
-                { label: "6个月", days: 180, years: 0.5 },
+                { label: "30天", days: 30, years: 30 / TRADING_DAYS_PER_YEAR },
+                { label: "90天", days: 90, years: 90 / TRADING_DAYS_PER_YEAR },
+                { label: "6个月", days: 180, years: 180 / TRADING_DAYS_PER_YEAR },
                 { label: "1年", days: 365, years: 1 },
               ].map((opt) => {
                 const isActive = Math.abs(input.years - opt.years) < 0.01;
@@ -78,8 +79,10 @@ export function Sidebar({ session }: SidebarProps) {
                     type="button"
                     key={opt.label}
                     onClick={() => {
-                      updateInput("years", opt.years);
-                      updateInput("steps", Math.round(opt.years * 252));
+                      updateMultipleInputs({
+                        years: opt.years,
+                        steps: Math.round(opt.years * TRADING_DAYS_PER_YEAR),
+                      });
                     }}
                     className={`flex-1 rounded px-1 py-1 font-mono text-[10px] transition-all ${
                       isActive
@@ -203,7 +206,7 @@ export function Sidebar({ session }: SidebarProps) {
                 <input
                   type="range"
                   min={30}
-                  max={1260}
+                  max={TRADING_DAYS_PER_YEAR * 5}
                   value={input.steps}
                   onChange={(e) =>
                     updateInput("steps", Number(e.target.value))

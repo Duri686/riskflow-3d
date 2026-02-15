@@ -20,7 +20,7 @@ interface PathVisualizationProps {
  *
  * 参数说明：
  * - paths: 模拟路径数量（更多路径 = 更准确的分布）
- * - steps: 时间步数（如 252 = 一年交易日）
+ * - steps: 时间步数（如 365 = 一年交易日）
  * - drift: 预期收益率 μ（正值 = 预期上涨）
  * - volatility: 波动率 σ（越大 = 路径分散越广）
  */

@@ -1,4 +1,4 @@
-import type { EngineClock, VisualizationEngine } from '../../engine/types'
+import type { EngineClock, VisualizationEngine } from '@/engine/types'
 
 export interface MonteCarloInput {
   paths: number
@@ -62,6 +62,8 @@ export interface MonteCarloMetricsPanel {
   elapsedYears: number
 }
 
+import { MIN_YEARS } from './constants'
+
 export const defaultMonteCarloInput: MonteCarloInput = {
   paths: 320,
   steps: 180,
@@ -79,7 +81,7 @@ const clamp = (value: number, min: number, max: number): number =>
 export const sanitizeInput = (input: MonteCarloInput): MonteCarloInput => ({
   paths: Math.max(16, Math.floor(input.paths)),
   steps: Math.max(12, Math.floor(input.steps)),
-  years: Math.max(0.1, input.years),
+  years: Math.max(MIN_YEARS, input.years),
   initialPrice: Math.max(1, input.initialPrice),
   drift: clamp(input.drift, -1, 1),
   volatility: clamp(input.volatility, 0.01, 2),

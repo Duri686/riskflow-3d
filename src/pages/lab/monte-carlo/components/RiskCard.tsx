@@ -1,5 +1,5 @@
 import { ShieldAlert, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
-import type { MonteCarloMetricsPanel } from "../../../../algorithms/monte-carlo/engine";
+import type { MonteCarloMetricsPanel } from "@/algorithms/monte-carlo/engine";
 
 interface RiskCardProps {
   metrics: MonteCarloMetricsPanel;
