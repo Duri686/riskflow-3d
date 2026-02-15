@@ -25,6 +25,7 @@ export type ViewType = "hub" | "lab";
 export interface GlobalUiState {
 	currentView: ViewType;
 	currentAlgorithmId: AlgorithmId;
+	leftPanelCollapsed: boolean;
 	rightPanelCollapsed: boolean;
 	timelineVisible: boolean;
 	recentAlgorithms: AlgorithmId[];

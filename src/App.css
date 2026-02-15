@@ -251,6 +251,23 @@
     pointer-events: none;
   }
 
+  /* 扫描线（简化版） */
+  .scanlines {
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+    background-size: 100% 4px;
+    pointer-events: none;
+  }
+
+  /* 3D 网格背景 */
+  .bg-grid-3d {
+    background-image: 
+      linear-gradient(to right, rgba(124, 77, 255, 0.1) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(124, 77, 255, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+    transform: perspective(1000px) rotateX(60deg) translateY(-100px);
+    transform-origin: top;
+  }
+
   /* 3D 透视网格 */
   .perspective-grid {
     background-image:

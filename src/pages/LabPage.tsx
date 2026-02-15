@@ -1,71 +1,35 @@
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import {
 	ALGORITHM_CATALOG,
 	ALGORITHM_SHORTCUTS,
 	type AlgorithmId,
 	getAlgorithmMeta,
 } from "../algorithms/registry";
-import { MonteCarloMetrics } from "../algorithms/monte-carlo/MetricsPanel";
-import { MonteCarloParamsPanel } from "../algorithms/monte-carlo/ParamsPanel";
 import { MonteCarloScene } from "../algorithms/monte-carlo/Scene";
 import { useMonteCarloSession } from "../algorithms/monte-carlo/useSession";
 import { RiskFlowLogo, MaterialIcon } from "../components/Logo";
-import { PanelSection } from "../components/PanelSection";
-import { WipFallback } from "../components/WipFallback";
 import { useLabStore } from "../store/useLabStore";
-import {
-	DEFAULT_PANEL_SECTIONS,
-	type PanelSectionsState,
-} from "../store/types";
-
-const ALGORITHM_SUBTITLES: Record<AlgorithmId, string> = {
-	"monte-carlo": "STOCHASTIC // SIMULATION",
-	"black-scholes": "PRICING // OPTIONS",
-	markowitz: "FRONTIER // OPTIMIZATION",
-	"kalman-filter": "SIGNAL // PROCESSING",
-};
 
 export function LabPage() {
 	const {
 		globalUi,
-		getSession,
 		markRecent,
-		resetSession,
-		upsertSession,
 		navigateToLab,
 		navigateToHub,
+		setLeftPanelCollapsed,
+		setRightPanelCollapsed,
 	} = useLabStore();
 
 	const algorithmId: AlgorithmId = globalUi.currentAlgorithmId;
-
+	const isLeftCollapsed = globalUi.leftPanelCollapsed;
+	const isRightCollapsed = globalUi.rightPanelCollapsed;
 	const monteCarlo = useMonteCarloSession();
-	const { restoreSession, getSnapshot } = monteCarlo;
-	const activeSession = getSession(algorithmId);
-	const panelSections: PanelSectionsState =
-		activeSession?.panelSections ?? DEFAULT_PANEL_SECTIONS;
 	const currentMeta = getAlgorithmMeta(algorithmId);
 	const isMonteCarlo = algorithmId === "monte-carlo";
-	const timelineProgress = isMonteCarlo ? monteCarlo.metrics.progress : 0;
 
 	useEffect(() => {
 		markRecent(algorithmId);
 	}, [algorithmId, markRecent]);
-
-	useEffect(() => {
-		if (algorithmId !== "monte-carlo") return;
-		restoreSession(activeSession?.monteCarlo);
-		return () => {
-			upsertSession(algorithmId, {
-				monteCarlo: getSnapshot(),
-			});
-		};
-	}, [
-		algorithmId,
-		activeSession?.monteCarlo,
-		upsertSession,
-		restoreSession,
-		getSnapshot,
-	]);
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
@@ -79,303 +43,348 @@ export function LabPage() {
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [navigateToLab]);
 
-	const togglePanelSection = (key: keyof PanelSectionsState) => {
-		upsertSession(algorithmId, {
-			panelSections: {
-				...panelSections,
-				[key]: !panelSections[key],
-			},
-		});
-	};
-
-	const handleResetCurrent = () => {
-		if (isMonteCarlo) {
-			monteCarlo.resetDefaults();
-		}
-		resetSession(algorithmId);
-	};
-
-	const stageContent = useMemo(() => {
-		if (isMonteCarlo) {
-			return (
-				<>
-					<MonteCarloScene layer={monteCarlo.renderLayer} />
-					<div className="scene-hud">
-						<div className="scene-hud-row">
-							<span>
-								步数 {monteCarlo.renderLayer.currentStep}/
-								{monteCarlo.renderLayer.totalSteps}
-							</span>
-							<span>
-								可见 {monteCarlo.renderLayer.visiblePoints.toLocaleString()}
-							</span>
-							<span className={monteCarlo.isPlaying ? "text-rf-ready" : "text-rf-wip"}>
-								{monteCarlo.isPlaying ? "● 运行中" : "⏸ 暂停"}
-							</span>
-						</div>
-						<div className="progress-track">
-							<div className="progress-bar" style={{ width: `${timelineProgress * 100}%` }} />
-						</div>
-					</div>
-				</>
-			);
-		}
-		return <WipFallback title={currentMeta.title} algorithmId={algorithmId} />;
-	}, [algorithmId, currentMeta.title, isMonteCarlo, monteCarlo.isPlaying, monteCarlo.renderLayer, timelineProgress]);
+	const computedSteps = isMonteCarlo
+		? Math.round(monteCarlo.metrics.progress * monteCarlo.input.steps)
+		: 0;
+	const totalSteps = isMonteCarlo ? monteCarlo.input.steps : 0;
 
 	return (
-		<div className="flex h-screen w-full bg-rf-bg selection:bg-rf-primary selection:text-white">
+		<div className="flex h-screen w-full flex-col bg-rf-bg font-body text-white selection:bg-rf-primary selection:text-white">
 			{/* 扫描线覆盖层 */}
-			<div className="scanline-overlay pointer-events-none fixed inset-0 z-50 opacity-20 mix-blend-overlay" />
+			<div className="scanlines pointer-events-none fixed inset-0 z-50 opacity-10" />
 
-			{/* 左侧导航栏 */}
-			<aside className="z-10 flex w-full shrink-0 flex-col border-r border-white/10 bg-rf-surface-solid md:w-[350px] lg:w-[400px]">
-				{/* 头部 */}
-				<div className="flex h-20 items-center justify-between border-b border-white/10 px-6">
-					<div className="flex flex-col">
-						<button
-							type="button"
-							onClick={navigateToHub}
-							className="flex cursor-pointer items-center gap-2 border-none bg-transparent p-0 text-left"
-						>
-							<RiskFlowLogo size="sm" showText={false} />
-							<h1 className="m-0 font-display text-2xl font-bold tracking-tight text-white">
-								RISKFLOW
-							</h1>
-						</button>
-						<div className="mt-1 flex items-center gap-2 font-mono text-[10px] text-rf-text-muted">
-							<span className="text-rf-accent">● SYS: ONLINE</span>
-							<span className="opacity-50">//</span>
+			{/* 顶部导航栏 */}
+			<header className="relative z-50 flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-rf-surface-solid/80 px-6 backdrop-blur-md">
+				<div className="flex items-center gap-3">
+					<button
+						type="button"
+						onClick={navigateToHub}
+						className="flex h-8 w-8 items-center justify-center border-none bg-transparent p-0"
+					>
+						<RiskFlowLogo size="sm" showText={false} />
+					</button>
+					<h1 className="flex items-center font-display text-sm font-bold tracking-[0.2em] text-white">
+						RISKFLOW 
+					</h1>
+				</div>
+				<div className="flex items-center gap-6">
+					<div className="flex items-center gap-4 font-mono text-[10px] leading-none text-gray-500">
+						<div className="flex items-center gap-2">
+							<span className="h-1.5 w-1.5 rounded-full bg-rf-accent" />
 							<span>LATENCY: 12ms</span>
 						</div>
+						<div className="flex items-center gap-2">
+							<span className="h-1.5 w-1.5 rounded-full bg-rf-primary" />
+							<span>SYS: READY</span>
+						</div>
 					</div>
-				</div>
-
-				{/* 算法列表 */}
-				<nav className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-6">
-					<div className="mb-2 px-2 font-mono text-[10px] uppercase tracking-widest text-rf-text-muted">
-						Select Module
-					</div>
-
-					{ALGORITHM_CATALOG.map((algo, index) => {
-						const isActive = algo.id === algorithmId;
-						return (
-							<button
-								type="button"
-								key={algo.id}
-								onClick={() => navigateToLab(algo.id)}
-								className={`group relative flex w-full cursor-pointer flex-col gap-1 border-l-4 p-4 text-left transition-all duration-300 ${
-									isActive
-										? "border-rf-primary bg-rf-primary/10 hover:bg-rf-primary/20"
-										: "border-transparent hover:border-white/20 hover:bg-white/5"
-								}`}
-							>
-								<div className="flex w-full items-center justify-between">
-									<span className={`font-mono text-xs tracking-wider ${isActive ? "text-rf-primary" : "text-rf-text-muted group-hover:text-rf-accent"}`}>
-										[{String(index + 1).padStart(2, "0")}]
-									</span>
-									<MaterialIcon
-										name={isActive ? "settings" : "arrow_forward"}
-										className={`text-sm ${isActive ? "animate-spin text-rf-primary" : "text-rf-text-muted opacity-0 group-hover:opacity-100"}`}
-									/>
-								</div>
-								<span className={`text-glow font-display text-lg font-bold tracking-wide ${isActive ? "text-white" : "text-rf-text-muted group-hover:text-white"}`}>
-									{algo.title.toUpperCase()}
-								</span>
-								<span className="font-mono text-[10px] uppercase tracking-wider text-rf-text-muted/60 group-hover:text-rf-text-muted">
-									{ALGORITHM_SUBTITLES[algo.id]}
-								</span>
-								{isActive && (
-									<div className="absolute right-0 top-0 h-2 w-2 border-r border-t border-rf-primary/50" />
-								)}
-							</button>
-						);
-					})}
-				</nav>
-
-				{/* 底部操作 */}
-				<div className="mt-auto border-t border-white/10 bg-rf-bg-section-body p-4">
-					<div className="flex flex-col gap-3">
+					<div className="h-4 w-px bg-white/10" />
+					<div className="flex items-center gap-2">
 						<button
 							type="button"
-							onClick={handleResetCurrent}
-							className="group flex cursor-pointer items-center gap-3 rounded border-none bg-transparent px-3 py-2 text-left transition-colors hover:bg-white/5"
+							onClick={() => setRightPanelCollapsed(!isRightCollapsed)}
+							className={`flex h-8 w-8 items-center justify-center rounded border bg-transparent transition-colors ${
+								isRightCollapsed ? "border-rf-primary/50 text-rf-primary" : "border-white/10 text-gray-400 hover:bg-white/5"
+							}`}
+							title={isRightCollapsed ? "显示参数面板" : "隐藏参数面板"}
 						>
-							<MaterialIcon name="tune" className="text-rf-text-muted group-hover:text-white" />
-							<span className="font-mono text-sm font-medium text-rf-text-muted group-hover:text-white">
-								SYS_CONFIG
-							</span>
+							<MaterialIcon name={isRightCollapsed ? "dock_to_left" : "dock_to_right"} className="text-base" />
 						</button>
 						<button
 							type="button"
-							onClick={navigateToHub}
-							className="group flex cursor-pointer items-center gap-3 rounded border-none bg-transparent px-3 py-2 text-left transition-colors hover:bg-red-500/10"
+							onClick={() => monteCarlo.resimulate()}
+							className="flex h-8 w-8 items-center justify-center rounded border border-white/10 bg-transparent text-rf-primary hover:bg-rf-primary/10"
+							title="重新模拟"
 						>
-							<MaterialIcon name="power_settings_new" className="text-rf-text-muted group-hover:text-red-400" />
-							<span className="font-mono text-sm font-medium text-rf-text-muted group-hover:text-red-400">
-								TERMINATE_SESSION
-							</span>
+							<MaterialIcon name="bolt" className="text-base" />
 						</button>
 					</div>
 				</div>
-			</aside>
+			</header>
 
-			{/* 右侧主预览区 */}
-			<main className="relative flex h-full flex-1 flex-col overflow-hidden bg-cover bg-center">
-				{/* 背景覆盖层 */}
-				<div className="absolute inset-0 z-0 bg-rf-bg/80 backdrop-blur-sm" />
-				{/* 点阵网格 */}
-				<div className="absolute inset-0 z-0 opacity-20" style={{ backgroundImage: "radial-gradient(#444 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
-
-				{/* 内容容器 */}
-				<div className="relative z-10 flex h-full flex-col p-8 md:p-12">
-					{/* 顶部状态栏 */}
-					<header className="mb-8 flex items-start justify-between">
-						<div className="glass-panel flex items-center gap-4 rounded-sm px-4 py-2">
-							<span className="h-2 w-2 animate-pulse rounded-full bg-rf-accent shadow-[0_0_8px_#00BFA5]" />
-							<p className="text-glow-secondary font-mono text-sm uppercase tracking-widest text-rf-accent">
-								SYSTEM::READY
-							</p>
-							<div className="h-4 w-px bg-white/20" />
-							<p className="font-mono text-sm uppercase tracking-widest text-rf-text-muted">
-								MODULE: {currentMeta.title.toUpperCase().replace(/ /g, "_")}_V4.2
-							</p>
-						</div>
-						<div className="hidden gap-2 md:flex">
-							<div className="glass-panel flex items-center justify-center px-3 py-2">
-								<MaterialIcon name="wifi" className="text-sm text-rf-text-muted" />
+			{/* 主内容区 */}
+			<div className="relative flex flex-1 overflow-hidden">
+				{/* 左侧模块选择栏 */}
+				<aside className={`glass-panel z-20 flex shrink-0 flex-col border-r border-white/10 transition-all duration-200 ${isLeftCollapsed ? "w-12" : "w-48"}`}>
+					{/* 模块列表 */}
+					<div className={`flex-1 overflow-hidden ${isLeftCollapsed ? "p-2" : "p-3"}`}>
+						{!isLeftCollapsed && (
+							<div className="mb-2 font-mono text-[9px] uppercase tracking-widest text-rf-primary/60">
+								Module
 							</div>
-							<div className="glass-panel flex items-center justify-center px-3 py-2">
-								<MaterialIcon name="memory" className="text-sm text-rf-text-muted" />
-							</div>
-							<div className="glass-panel flex items-center justify-center px-3 py-2">
-								<MaterialIcon name="schedule" className="text-sm text-rf-text-muted" />
-							</div>
+						)}
+						<div className="space-y-1">
+							{ALGORITHM_CATALOG.map((algo, index) => {
+								const isActive = algo.id === algorithmId;
+								const isDisabled = algo.id !== "monte-carlo";
+								return (
+									<button
+										type="button"
+										key={algo.id}
+										onClick={() => !isDisabled && navigateToLab(algo.id)}
+										disabled={isDisabled}
+										title={isLeftCollapsed ? algo.title : undefined}
+										className={`group relative w-full overflow-hidden rounded-sm border transition-all ${
+											isLeftCollapsed ? "flex h-8 items-center justify-center p-0" : "px-2.5 py-1.5 text-left"
+										} ${
+											isActive
+												? "border-rf-primary/50 bg-rf-primary/10"
+												: isDisabled
+												? "cursor-not-allowed border-transparent opacity-30"
+												: "border-transparent hover:border-white/10 hover:bg-white/5"
+										}`}
+									>
+										{isLeftCollapsed ? (
+											<span className={`font-mono text-[10px] ${isActive ? "text-rf-primary" : "text-gray-500"}`}>
+												{String(index + 1).padStart(2, "0")}
+											</span>
+										) : (
+											<div className="flex items-center gap-2">
+												<span className="font-mono text-[9px] text-gray-600">
+													{String(index + 1).padStart(2, "0")}
+												</span>
+												<span className={`truncate font-display text-[11px] font-medium ${isActive ? "text-white" : "text-gray-500"}`}>
+													{algo.title.toUpperCase()}
+												</span>
+											</div>
+										)}
+									</button>
+								);
+							})}
 						</div>
-					</header>
+					</div>
 
-					{/* 中央可视化区域 */}
-					<div className="relative flex h-full max-h-[60vh] w-full flex-1 items-center justify-center self-center">
-						{/* 外框 */}
-						<div className="absolute inset-0 rounded-sm border border-white/10">
-							<div className="absolute left-0 top-0 h-4 w-4 border-l-2 border-t-2 border-rf-primary" />
-							<div className="absolute right-0 top-0 h-4 w-4 border-r-2 border-t-2 border-rf-primary" />
-							<div className="absolute bottom-0 left-0 h-4 w-4 border-b-2 border-l-2 border-rf-primary" />
-							<div className="absolute bottom-0 right-0 h-4 w-4 border-b-2 border-r-2 border-rf-primary" />
-						</div>
-
-						{/* 3D 场景容器 */}
-						<div className="relative h-full w-full overflow-hidden bg-black/40">
-							<div className="absolute inset-0 bg-linear-to-t from-rf-primary/10 via-transparent to-transparent" />
-							{stageContent}
-							{/* 中心文字水印 */}
-							<div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-								<h2 className="select-none font-display text-6xl font-bold tracking-tighter text-white/10 md:text-8xl">
-									{currentMeta.title.toUpperCase()}
-								</h2>
-							</div>
-						</div>
-
-						{/* 浮动信息卡片 */}
-						<div className="absolute bottom-8 left-8 max-w-md">
-							<div className="glass-panel group relative overflow-hidden rounded-sm border-l-2 border-l-rf-accent p-6">
-								<div className="absolute -left-full top-0 h-full w-full skew-x-12 bg-linear-to-r from-transparent via-white/5 to-transparent transition-all duration-1000 group-hover:left-full" />
-								<h3 className="mb-2 flex items-center gap-2 font-display text-xl font-bold text-white">
-									<MaterialIcon name="analytics" className="text-rf-accent" />
-									Simulation Core
-								</h3>
-								<p className="font-body text-sm leading-relaxed text-rf-text-muted">
-									{currentMeta.description}
-								</p>
-								<div className="mt-4 flex gap-4 font-mono text-xs text-rf-accent">
-									<span>VAR_95: READY</span>
-									<span>VOLATILITY: AUTO</span>
-								</div>
-							</div>
-						</div>
-
-						{/* 操作按钮 */}
-						<div className="absolute bottom-8 right-8">
+					{/* 底部操作按钮 */}
+					<div className={`flex items-center border-t border-white/5 ${isLeftCollapsed ? "flex-col gap-1 p-2" : "gap-1 p-2"}`}>
+						<button
+							type="button"
+							onClick={() => setLeftPanelCollapsed(!isLeftCollapsed)}
+							className={`flex h-7 items-center justify-center rounded border border-white/5 bg-transparent text-gray-500 transition-colors hover:border-white/15 hover:text-gray-300 ${isLeftCollapsed ? "w-7" : "w-7"}`}
+							title={isLeftCollapsed ? "展开菜单" : "收起菜单"}
+						>
+							<MaterialIcon name={isLeftCollapsed ? "chevron_right" : "chevron_left"} className="text-sm" />
+						</button>
+						{!isLeftCollapsed && (
 							<button
 								type="button"
-								onClick={() => isMonteCarlo && monteCarlo.togglePlaying()}
-								className="glow-border group relative overflow-hidden border border-rf-primary bg-rf-primary/10 px-10 py-4 font-display font-bold uppercase tracking-widest text-white transition-all duration-200 hover:bg-rf-primary/20"
+								onClick={navigateToHub}
+								className="flex h-7 w-7 items-center justify-center rounded border border-white/5 bg-transparent text-gray-500 transition-colors hover:border-red-500/30 hover:text-red-400"
+								title="退出实验室"
 							>
-								<span className="text-glow relative z-10 flex items-center gap-2">
-									{isMonteCarlo && monteCarlo.isPlaying ? "Pause Engine" : "Initialize Engine"}
-									<MaterialIcon name="arrow_forward" className="text-lg transition-transform group-hover:translate-x-1" />
-								</span>
-								<div className="absolute inset-0 translate-y-full bg-rf-primary/20 transition-transform duration-300 group-hover:translate-y-0" />
+								<MaterialIcon name="logout" className="text-sm" />
 							</button>
-						</div>
-					</div>
-
-					{/* 底部装饰代码 */}
-					<div className="mt-auto flex items-end justify-between pt-6 opacity-40 transition-opacity hover:opacity-80">
-						<div className="flex flex-col gap-1 font-mono text-[10px] text-rf-text-muted">
-							<p>&gt; CHECKING_INTEGRITY... OK</p>
-							<p>&gt; LOADING_ASSETS... [||||||||||] 100%</p>
-							<p>&gt; AWAITING_INPUT_</p>
-						</div>
-						<div className="text-right font-mono text-[10px] text-rf-text-muted">
-							RISKFLOW_OS v2.0.4
-							<br />
-							SECURE_CONNECTION
-						</div>
-					</div>
-				</div>
-			</main>
-
-			{/* 右侧参数面板（可选） */}
-			{!globalUi.rightPanelCollapsed && (
-				<aside className="hidden w-80 shrink-0 flex-col overflow-y-auto border-l border-white/10 bg-rf-surface-solid xl:flex">
-					<div className="grid content-start gap-2.5 p-3">
-						<PanelSection
-							title="参数面板"
-							open={panelSections.parametersOpen}
-							onToggle={() => togglePanelSection("parametersOpen")}
-						>
-							{isMonteCarlo ? (
-								<MonteCarloParamsPanel
-									input={monteCarlo.input}
-									isPlaying={monteCarlo.isPlaying}
-									onUpdateInput={monteCarlo.updateInput}
-									onTogglePlaying={monteCarlo.togglePlaying}
-									onResimulate={monteCarlo.resimulate}
-								/>
-							) : (
-								<p className="m-0 text-sm text-rf-text-dim">
-									TODO: 参数面板（{currentMeta.title}）
-								</p>
-							)}
-						</PanelSection>
-
-						<PanelSection
-							title="风险指标"
-							open={panelSections.metricsOpen}
-							onToggle={() => togglePanelSection("metricsOpen")}
-						>
-							{isMonteCarlo ? (
-								<MonteCarloMetrics metrics={monteCarlo.metrics} />
-							) : (
-								<p className="m-0 text-sm text-rf-text-dim">
-									TODO: 指标面板（{currentMeta.title}）
-								</p>
-							)}
-						</PanelSection>
-
-						<PanelSection
-							title="说明与笔记"
-							open={panelSections.notesOpen}
-							onToggle={() => togglePanelSection("notesOpen")}
-						>
-							<p className="m-0 text-sm text-rf-text-dim">
-								TODO: 公式推导、实验记录和学习笔记。
-							</p>
-						</PanelSection>
+						)}
 					</div>
 				</aside>
-			)}
+
+				{/* 中间可视化区域 */}
+				<main className="relative flex flex-1 flex-col overflow-hidden bg-rf-bg">
+					{/* 3D 网格背景 */}
+					<div className="pointer-events-none absolute inset-0 overflow-hidden">
+						<div className="bg-grid-3d absolute inset-0 opacity-20" />
+						<div className="absolute inset-0 bg-linear-to-t from-rf-bg via-transparent to-rf-bg" />
+					</div>
+
+					{/* 内容区 */}
+					<div className="relative z-10 flex flex-1 flex-col">
+						{/* 3D 可视化区域 */}
+						<div className="relative flex-1">
+							{isMonteCarlo ? (
+								<MonteCarloScene layer={monteCarlo.renderLayer} />
+							) : (
+								<div className="flex h-full w-full items-center justify-center">
+									<p className="font-mono text-sm text-gray-500">
+										// {currentMeta.title.toUpperCase()}_VISUALIZATION_PENDING
+									</p>
+								</div>
+							)}
+						</div>
+
+						{/* 底部控制栏 */}
+						<div className="z-20 flex items-center gap-4 border-t border-white/5 bg-rf-bg/60 px-4 py-2">
+							{/* 进度条 + 步数 */}
+							<div className="flex flex-1 items-center gap-3">
+								<div className="relative h-0.5 flex-1 rounded-full bg-white/10">
+									<div
+										className="absolute inset-y-0 left-0 rounded-full bg-linear-to-r from-rf-accent to-rf-primary"
+										style={{ width: `${monteCarlo.metrics.progress * 100}%` }}
+									/>
+								</div>
+								<span className="font-mono text-[10px] tabular-nums text-gray-500">
+									{computedSteps}/{totalSteps}
+								</span>
+							</div>
+
+							{/* 播放/暂停按钮（融合状态指示） */}
+							{monteCarlo.metrics.progress >= 1 ? (
+								<div className="flex h-7 w-20 items-center justify-center gap-2 rounded border border-green-500/50 bg-green-500/10 font-mono text-[10px] font-medium text-green-400">
+									<span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" />
+									<span className="w-12 text-center">已完成</span>
+								</div>
+							) : (
+								<button
+									type="button"
+									onClick={() => monteCarlo.togglePlaying()}
+									className={`flex h-7 w-20 items-center justify-center gap-2 rounded border font-mono text-[10px] font-medium transition-all ${
+										monteCarlo.isPlaying
+											? "border-rf-accent/50 bg-rf-accent/10 text-rf-accent hover:bg-rf-accent/20"
+											: "border-rf-primary/50 bg-rf-primary/10 text-rf-primary hover:bg-rf-primary/20"
+									}`}
+								>
+									<span className={`h-1.5 w-1.5 shrink-0 rounded-full ${monteCarlo.isPlaying ? "animate-pulse bg-rf-accent" : "bg-rf-primary"}`} />
+									<span className="w-12 text-center">{monteCarlo.isPlaying ? "运行中" : "已暂停"}</span>
+								</button>
+							)}
+						</div>
+					</div>
+				</main>
+
+				{/* 右侧参数面板 */}
+				{!isRightCollapsed && (
+				<aside className="glass-panel z-20 flex w-64 shrink-0 flex-col overflow-y-auto border-l border-white/10">
+					{/* PARAMETERS 区块 */}
+					<div className="border-b border-white/10 p-5">
+						<div className="mb-6 flex items-center justify-between">
+							<h2 className="font-display text-xs font-bold tracking-widest text-white">模拟参数</h2>
+							<span className="font-mono text-[10px] text-gray-600">[-]</span>
+						</div>
+						<div className="space-y-4">
+							{/* 初始价格 - 可输入 */}
+							<div className="space-y-1">
+								<div className="flex items-center justify-between font-mono text-[10px] text-gray-400">
+									<span>初始价格 S₀</span>
+									<div className="flex items-center gap-1">
+										<span className="text-gray-500">$</span>
+										<input
+											type="number"
+											min={1}
+											max={10000}
+											value={monteCarlo.input.initialPrice}
+											onChange={(e) => monteCarlo.updateInput("initialPrice", Math.max(1, Number(e.target.value)))}
+											className="w-16 border-b border-rf-accent/50 bg-transparent px-1 text-right text-rf-accent outline-none focus:border-rf-accent"
+										/>
+									</div>
+								</div>
+							</div>
+							{/* 模拟周期（年） */}
+							<div className="space-y-1">
+								<div className="flex items-center justify-between font-mono text-[10px] text-gray-400">
+									<span>模拟周期</span>
+									<span className="text-white">{monteCarlo.input.years} 年</span>
+								</div>
+								<input
+									type="range"
+									min={1}
+									max={5}
+									step={0.5}
+									value={monteCarlo.input.years}
+									onChange={(e) => monteCarlo.updateInput("years", Number(e.target.value))}
+									className="w-full"
+								/>
+							</div>
+							{/* 时间步数（交易日） */}
+							<div className="space-y-1">
+								<div className="flex items-center justify-between font-mono text-[10px] text-gray-400">
+									<span>时间步数</span>
+									<span className="text-white">{monteCarlo.input.steps} 天</span>
+								</div>
+								<input
+									type="range"
+									min={30}
+									max={365}
+									value={monteCarlo.input.steps}
+									onChange={(e) => monteCarlo.updateInput("steps", Number(e.target.value))}
+									className="w-full"
+								/>
+								<div className="text-right font-mono text-[8px] text-gray-600">
+									≈ {(monteCarlo.input.steps / 252).toFixed(1)} 年交易日
+								</div>
+							</div>
+							{/* 路径数量 */}
+							<div className="space-y-1">
+								<div className="flex items-center justify-between font-mono text-[10px] text-gray-400">
+									<span>模拟路径</span>
+									<span className="text-white">{monteCarlo.input.paths} 条</span>
+								</div>
+								<input
+									type="range"
+									min={10}
+									max={500}
+									value={monteCarlo.input.paths}
+									onChange={(e) => monteCarlo.updateInput("paths", Number(e.target.value))}
+									className="w-full"
+								/>
+							</div>
+							{/* 漂移率 */}
+							<div className="space-y-2">
+								<div className="flex justify-between font-mono text-[10px] text-gray-400">
+									<span>预期收益率 μ</span>
+									<span className="text-white">{(monteCarlo.input.drift * 100).toFixed(1)}%</span>
+								</div>
+								<input
+									type="range"
+									min={0}
+									max={30}
+									value={monteCarlo.input.drift * 100}
+									onChange={(e) => monteCarlo.updateInput("drift", Number(e.target.value) / 100)}
+									className="w-full"
+								/>
+							</div>
+							{/* 波动率 */}
+							<div className="space-y-2">
+								<div className="flex justify-between font-mono text-[10px] text-gray-400">
+									<span>波动率 σ</span>
+									<span className="text-rf-accent">{(monteCarlo.input.volatility * 100).toFixed(1)}%</span>
+								</div>
+								<input
+									type="range"
+									min={5}
+									max={80}
+									value={monteCarlo.input.volatility * 100}
+									onChange={(e) => monteCarlo.updateInput("volatility", Number(e.target.value) / 100)}
+									className="w-full"
+								/>
+							</div>
+						</div>
+					</div>
+
+					{/* 风险指标区块 */}
+					<div className="p-5">
+						<div className="mb-4 flex items-center justify-between">
+							<h2 className="font-display text-xs font-bold tracking-widest text-white">风险指标</h2>
+						</div>
+						<div className="space-y-3">
+							<div className="flex items-center justify-between font-mono text-[10px]">
+								<span className="text-gray-500">当前均价</span>
+								<span className="font-bold text-white">${monteCarlo.metrics.current.meanPrice.toFixed(2)}</span>
+							</div>
+							<div className="flex items-center justify-between font-mono text-[10px]">
+								<span className="text-gray-500">5%/95% 分位</span>
+								<span className="text-white">
+									${monteCarlo.metrics.current.p05Price.toFixed(0)} / ${monteCarlo.metrics.current.p95Price.toFixed(0)}
+								</span>
+							</div>
+							<div className="flex items-center justify-between font-mono text-[10px]">
+								<span className="text-gray-500">预期收益</span>
+								<span className="text-rf-accent">{(monteCarlo.metrics.final.expectedReturn * 100).toFixed(1)}%</span>
+							</div>
+							<div className="flex items-center justify-between font-mono text-[10px]">
+								<span className="text-gray-500">最大损失 (VaR)</span>
+								<span className="font-bold text-red-400">{(monteCarlo.metrics.final.var95 * 100).toFixed(1)}%</span>
+							</div>
+							<div className="flex items-center justify-between font-mono text-[10px]">
+								<span className="text-gray-500">极端损失 (CVaR)</span>
+								<span className="font-bold text-red-400">{(monteCarlo.metrics.final.expectedShortfall95 * 100).toFixed(1)}%</span>
+							</div>
+							<div className="flex items-center justify-between font-mono text-[10px]">
+								<span className="text-gray-500">亏损概率</span>
+								<span className="text-white">{(monteCarlo.metrics.final.lossProbability * 100).toFixed(1)}%</span>
+							</div>
+						</div>
+					</div>
+				</aside>
+				)}
+			</div>
 		</div>
 	);
 }

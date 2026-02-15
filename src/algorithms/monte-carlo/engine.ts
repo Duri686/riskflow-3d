@@ -206,11 +206,22 @@ const buildCloudData = (rawInput: MonteCarloInput): MonteCarloCloudData => {
       positions[pointIndex + 1] = y
       positions[pointIndex + 2] = z
 
-      const normalized = clamp(prices[pathIndex] / input.initialPrice, 0.6, 1.6)
-      const ratio = (normalized - 0.6) / 1
-      colors[pointIndex] = 0.15 + ratio * 0.8
-      colors[pointIndex + 1] = 0.5 + (1 - ratio) * 0.2
-      colors[pointIndex + 2] = 0.95 - ratio * 0.5
+      // 涨跌颜色区分：青色上涨 #22D3EE / 紫色下跌 #A855F7
+      const priceRatio = prices[pathIndex] / input.initialPrice
+      const isUp = priceRatio > 1
+      const intensity = clamp(Math.abs(priceRatio - 1) * 2, 0, 1)
+
+      if (isUp) {
+        // 青色 #22D3EE (34, 211, 238) -> RGB normalized
+        colors[pointIndex] = 0.13 + intensity * 0.1      // R: 0.13
+        colors[pointIndex + 1] = 0.6 + intensity * 0.23  // G: 0.83
+        colors[pointIndex + 2] = 0.7 + intensity * 0.23  // B: 0.93
+      } else {
+        // 紫色 #A855F7 (168, 85, 247) -> RGB normalized
+        colors[pointIndex] = 0.4 + intensity * 0.26      // R: 0.66
+        colors[pointIndex + 1] = 0.2 + intensity * 0.13  // G: 0.33
+        colors[pointIndex + 2] = 0.7 + intensity * 0.27  // B: 0.97
+      }
     }
 
     meanPrice /= input.paths

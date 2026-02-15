@@ -7,6 +7,7 @@ export interface LabStoreValue {
 	sessions: Partial<Record<AlgorithmId, AlgorithmSessionState>>;
 	navigateToHub: () => void;
 	navigateToLab: (algorithmId: AlgorithmId) => void;
+	setLeftPanelCollapsed: (collapsed: boolean) => void;
 	setRightPanelCollapsed: (collapsed: boolean) => void;
 	setTimelineVisible: (visible: boolean) => void;
 	markRecent: (algorithmId: AlgorithmId) => void;

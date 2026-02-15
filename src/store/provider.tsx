@@ -40,6 +40,7 @@ export function LabStoreProvider({ children }: PropsWithChildren) {
 		return {
 			currentView: initial.view,
 			currentAlgorithmId: initial.algorithmId,
+			leftPanelCollapsed: false,
 			rightPanelCollapsed: false,
 			timelineVisible: true,
 			recentAlgorithms: [DEFAULT_ALGORITHM_ID],
@@ -94,6 +95,10 @@ export function LabStoreProvider({ children }: PropsWithChildren) {
 
 		window.addEventListener("popstate", onPopState);
 		return () => window.removeEventListener("popstate", onPopState);
+	}, []);
+
+	const setLeftPanelCollapsed = useCallback((collapsed: boolean) => {
+		setGlobalUi((previous) => ({ ...previous, leftPanelCollapsed: collapsed }));
 	}, []);
 
 	const setRightPanelCollapsed = useCallback((collapsed: boolean) => {
@@ -161,6 +166,7 @@ export function LabStoreProvider({ children }: PropsWithChildren) {
 			sessions,
 			navigateToHub,
 			navigateToLab,
+			setLeftPanelCollapsed,
 			setRightPanelCollapsed,
 			setTimelineVisible,
 			markRecent,
@@ -176,6 +182,7 @@ export function LabStoreProvider({ children }: PropsWithChildren) {
 			navigateToLab,
 			resetSession,
 			sessions,
+			setLeftPanelCollapsed,
 			setRightPanelCollapsed,
 			setTimelineVisible,
 			upsertSession,
