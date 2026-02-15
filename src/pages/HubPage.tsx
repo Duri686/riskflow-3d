@@ -1,267 +1,123 @@
-import type { LucideIcon } from "lucide-react";
-import {
-	Activity,
-	ArrowRight,
-	ArrowUpRight,
-	Check,
-	Github,
-	History,
-	PieChart,
-	Sigma,
-	Sparkles,
-	Terminal,
-	Wrench,
-} from "lucide-react";
-import {
-	ALGORITHM_CATALOG,
-	ALGORITHM_SHORTCUTS,
-	DEFAULT_ALGORITHM_ID,
-	getAlgorithmMeta,
-	type AlgorithmId,
-} from "../algorithms/registry";
+import { ArrowRight } from "lucide-react";
+import { useEffect } from "react";
+import { ALGORITHM_SHORTCUTS, DEFAULT_ALGORITHM_ID } from "../algorithms/registry";
+import { RiskFlowLogo, MaterialIcon } from "../components/Logo";
 import { useLabStore } from "../store/useLabStore";
 
-const shortcutByAlgorithm = Object.fromEntries(
-	Object.entries(ALGORITHM_SHORTCUTS).map(([key, id]) => [id, key]),
-);
-
-const algorithmIconById: Record<AlgorithmId, LucideIcon> = {
-	"monte-carlo": Sparkles,
-	"black-scholes": Sigma,
-	markowitz: PieChart,
-	"kalman-filter": Activity,
-};
-
-/* 品牌标识 — Violet Bloom 紫色渐变 */
-function BrandMark() {
-	return (
-		<svg
-			aria-hidden="true"
-			className="h-4 w-4"
-			fill="none"
-			viewBox="0 0 24 24"
-			xmlns="http://www.w3.org/2000/svg"
-		>
-			<title>RiskFlow 品牌标识</title>
-			<defs>
-				<linearGradient id="rf-brand-stroke" x1="4" x2="20" y1="18" y2="6">
-					<stop offset="0" stopColor="#8c5cff" />
-					<stop offset="1" stopColor="#5993f4" />
-				</linearGradient>
-			</defs>
-			<path
-				d="M4 17.5L8.5 12.2L12.6 14.8L19.4 6.8"
-				stroke="url(#rf-brand-stroke)"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				strokeWidth="2"
-			/>
-			<circle cx="19.4" cy="6.8" fill="url(#rf-brand-stroke)" r="2" />
-			<path
-				d="M4 20H20"
-				stroke="rgba(255,255,255,0.08)"
-				strokeLinecap="round"
-				strokeWidth="1.4"
-			/>
-		</svg>
-	);
-}
-
 export function HubPage() {
-	const {
-		globalUi: { recentAlgorithms },
-		navigateToLab,
-	} = useLabStore();
+	const { navigateToLab } = useLabStore();
+
+	useEffect(() => {
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (!event.metaKey && !event.ctrlKey) return;
+			const targetAlgorithmId = ALGORITHM_SHORTCUTS[event.key];
+			if (!targetAlgorithmId) return;
+			event.preventDefault();
+			navigateToLab(targetAlgorithmId);
+		};
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [navigateToLab]);
 
 	return (
-		<div className="relative min-h-screen overflow-hidden bg-rf-bg">
-			{/* 能量网格背景层 */}
-			<div className="pointer-events-none absolute inset-0">
-				{/* CSS 网格 — 4K 清晰 */}
-				<div className="rf-grid-bg rf-grid-enter absolute inset-0" />
-				{/* 顶部环境光 — Violet 紫色光晕 */}
-				<div className="absolute -top-32 left-1/2 h-96 w-full max-w-3xl -translate-x-1/2 rounded-full bg-rf-primary/6 blur-3xl" />
-				{/* 底部青色环境光 */}
-				<div className="absolute -bottom-48 left-1/2 h-80 w-full max-w-2xl -translate-x-1/2 rounded-full bg-rf-accent/5 blur-3xl" />
+		<div className="relative h-screen w-full overflow-hidden bg-rf-bg selection:bg-rf-primary selection:text-white">
+			{/* 扫描线覆盖层 */}
+			<div className="scanline-overlay pointer-events-none fixed inset-0 z-50 opacity-20 mix-blend-overlay" />
+
+			{/* 背景层 */}
+			<div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+				{/* 抽象渐变 */}
+				<div className="absolute -left-1/2 -top-1/2 h-[200%] w-[200%] animate-pulse bg-linear-to-br from-rf-primary/10 via-transparent to-rf-accent/5 blur-3xl" style={{ animationDuration: "4s" }} />
+				{/* 3D 透视网格 */}
+				<div className="absolute inset-0 top-[30%] flex h-[150%] items-center justify-center">
+					<div className="perspective-grid animate-grid-move h-full w-full border-t border-rf-primary/20" />
+				</div>
+				{/* 暗角 */}
+				<div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050507_90%)]" />
 			</div>
 
-			<div className="relative mx-auto max-w-5xl px-6 py-10 2xl:px-8 2xl:py-14">
-				{/* 顶部导航 — 极简终端风 */}
-				<nav className="rf-reveal flex items-center justify-between">
-					<div className="flex items-center gap-2.5">
-						<div className="rf-brand-badge grid h-8 w-8 place-items-center rounded-md">
-							<BrandMark />
-						</div>
-						<span className="font-mono text-sm tracking-wide text-rf-text-secondary">
-							RiskFlow 3D
-						</span>
+			{/* 顶部导航 */}
+			<nav className="rf-reveal absolute left-0 top-0 z-20 flex w-full items-center justify-between px-8 py-6" style={{ animationDelay: "0.5s" }}>
+				<RiskFlowLogo />
+				<div className="hidden items-center gap-6 font-mono text-xs text-rf-accent/70 md:flex">
+					<div className="flex items-center gap-2">
+						<span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+						<span>SYSTEM_ONLINE</span>
 					</div>
-					<div className="flex items-center gap-4">
-						<span className="rounded-md bg-rf-primary/10 px-2.5 py-1 font-mono text-xs font-medium text-rf-primary">
-							Phase 1
-						</span>
-						<a
-							className="inline-flex items-center gap-1.5 font-mono text-xs text-rf-text-muted no-underline transition-colors hover:text-rf-primary"
-							href="https://github.com/Duri686/riskflow-3d"
-							target="_blank"
-							rel="noreferrer"
-						>
-							<Github className="h-3.5 w-3.5" strokeWidth={1.8} />
-							<span>GitHub</span>
-							<ArrowUpRight className="h-3 w-3" strokeWidth={2} />
-						</a>
-					</div>
-				</nav>
+					<span>v.3.0.1-BETA</span>
+				</div>
+			</nav>
 
-				{/* Hero — 研究工作台标题 */}
-				<section className="rf-reveal rf-delay-1 mt-16 mb-12 text-center sm:mt-24 sm:mb-14 2xl:mt-32 2xl:mb-18">
-					<h1 className="m-0 font-display text-4xl font-bold leading-tight tracking-tight sm:text-5xl 2xl:text-6xl">
-						<span className="text-rf-text">不止读公式</span>
-						<br />
-						<span className="bg-linear-to-r from-rf-primary to-rf-accent bg-clip-text text-transparent">
-							动手探索金融算法
-						</span>
+			{/* 主内容区 */}
+			<main className="relative z-10 flex h-full w-full flex-col items-center justify-center px-4 text-center">
+				{/* Hero 文字容器 */}
+				<div className="group relative mb-12">
+					{/* 装饰线 */}
+					<div className="rf-reveal absolute -left-12 top-0 hidden h-full w-px bg-linear-to-b from-transparent via-rf-primary/50 to-transparent md:block" style={{ animationDelay: "1s" }} />
+					<div className="rf-reveal absolute -right-12 top-0 hidden h-full w-px bg-linear-to-b from-transparent via-rf-primary/50 to-transparent md:block" style={{ animationDelay: "1s" }} />
+
+					{/* 主标题 */}
+					<h1 className="rf-reveal retro-text-shadow select-none bg-linear-to-b from-white via-white to-white/40 bg-clip-text font-display text-6xl font-bold leading-none tracking-tighter text-transparent md:text-8xl lg:text-9xl">
+						RiskFlow 3D
 					</h1>
 
-					<p className="mx-auto mt-5 max-w-md font-mono text-sm leading-relaxed text-rf-text-secondary sm:text-base 2xl:mt-7">
-						4 种核心算法的 3D 交互实验室
-						<br />
-						<span className="text-rf-text-muted">
-							调节参数 · 观察演化 · 建立金融直觉
+					{/* 副标题 */}
+					<div className="rf-reveal mt-6 flex items-center justify-center gap-2" style={{ animationDelay: "0.3s" }}>
+						<MaterialIcon name="terminal" className="animate-pulse text-sm text-rf-accent md:text-base" />
+						<p className="font-mono text-sm tracking-wide text-rf-accent md:text-base lg:text-lg">
+							Stop reading formulas. Start exploring
+							<span className="animate-blink text-white">_</span>
+						</p>
+					</div>
+				</div>
+
+				{/* CTA 按钮 */}
+				<div className="rf-reveal relative mt-8" style={{ animationDelay: "0.6s" }}>
+					{/* 装饰括号 */}
+					<div className="absolute -left-8 top-1/2 hidden -translate-y-1/2 font-mono text-2xl text-white/20 sm:block">[</div>
+					<div className="absolute -right-8 top-1/2 hidden -translate-y-1/2 font-mono text-2xl text-white/20 sm:block">]</div>
+
+					<button
+						type="button"
+						onClick={() => navigateToLab(DEFAULT_ALGORITHM_ID)}
+						className="rf-pill-hover glow-border group relative overflow-hidden border-2 border-rf-primary bg-transparent px-10 py-4 font-display text-lg font-bold uppercase tracking-widest text-white transition-all duration-300 hover:scale-105 hover:bg-rf-primary active:scale-95"
+					>
+						{/* 闪光效果 */}
+						<div className="absolute inset-0 h-full w-full -translate-x-full skew-x-12 bg-linear-to-r from-transparent via-white/10 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
+						<span className="relative z-10 flex items-center gap-3">
+							INITIALIZE LAB
+							<ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" strokeWidth={2} />
 						</span>
+					</button>
+
+					<p className="mt-4 font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">
+						Secure Connection // Port 443
 					</p>
+				</div>
+			</main>
 
-					{/* CTA 按钮 — Violet 紫色边框 */}
-					<div className="mt-10 2xl:mt-12">
-						<button
-							type="button"
-							onClick={() => navigateToLab(DEFAULT_ALGORITHM_ID)}
-							className="rf-pill-hover group inline-flex cursor-pointer items-center gap-2.5 rounded-lg border border-rf-primary/40 bg-rf-primary/10 px-7 py-3 font-sans text-sm font-semibold text-rf-text transition-colors hover:bg-rf-primary/18"
-						>
-							<Terminal className="h-4 w-4 text-rf-primary" strokeWidth={2} />
-							<span>进入实验室</span>
-							<ArrowRight className="h-3.5 w-3.5 text-rf-primary transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
-						</button>
+			{/* 底部状态栏 */}
+			<footer className="rf-reveal pointer-events-none absolute bottom-0 left-0 z-20 flex w-full items-end justify-between px-8 py-6" style={{ animationDelay: "0.8s" }}>
+				<div className="flex flex-col gap-1 font-mono text-[10px] text-white/40">
+					<div className="flex items-center gap-2">
+						<MaterialIcon name="memory" className="text-[14px]" />
+						<span>MEM_USAGE: 14%</span>
 					</div>
-
-					{/* 能力标签 */}
-					<div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-						{[
-							{ icon: Sparkles, label: "参数实验", color: "text-rf-primary" },
-							{ icon: PieChart, label: "3D 可视化", color: "text-rf-accent" },
-							{ icon: Activity, label: "实时演化", color: "text-rf-chart-1" },
-						].map(({ icon: Icon, label, color }) => (
-							<span
-								key={label}
-								className="inline-flex items-center gap-1.5 rounded-md border border-rf-border bg-rf-bg-card px-2.5 py-1 font-sans text-xs text-rf-text-secondary"
-							>
-								<Icon className={`h-3 w-3 ${color}`} strokeWidth={2} />
-								{label}
-							</span>
-						))}
+					<div className="flex items-center gap-2">
+						<MaterialIcon name="network_check" className="text-[14px]" />
+						<span>LATENCY: 12ms</span>
 					</div>
-				</section>
+				</div>
 
-				{/* 算法卡片 — Bento Grid 研究单元 */}
-				<section>
-					<div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-						{ALGORITHM_CATALOG.map((algo, index) => {
-							const isReady = algo.status === "ready";
-							const shortcut = shortcutByAlgorithm[algo.id];
-							const AlgorithmIcon = algorithmIconById[algo.id];
-
-							return (
-								<button
-									type="button"
-									key={algo.id}
-									onClick={() => navigateToLab(algo.id)}
-									className={`rf-card-hover rf-glow-hover rf-reveal rf-stagger-${index + 1} group flex cursor-pointer gap-4 p-5 text-left 2xl:p-6`}
-								>
-									{/* 左侧图标 */}
-									<div className="rf-icon-accent grid h-11 w-11 shrink-0 place-items-center rounded-lg">
-										<AlgorithmIcon className="h-5 w-5" strokeWidth={1.8} />
-									</div>
-
-									{/* 右侧内容 */}
-									<div className="grid min-w-0 flex-1 gap-2">
-										{/* 标题行：标题 + 状态徽章 + 快捷键 */}
-										<div className="flex items-center gap-2">
-											<h3 className="rf-card-title m-0 font-display text-base font-semibold text-rf-text 2xl:text-lg">
-												{algo.title}
-											</h3>
-											<span
-												className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-xs font-bold ${
-													isReady
-														? "bg-rf-ready-bg text-rf-ready"
-														: "bg-rf-wip-bg text-rf-wip"
-												}`}
-											>
-												{isReady ? (
-													<Check className="h-3 w-3" strokeWidth={2.4} />
-												) : (
-													<Wrench className="h-3 w-3" strokeWidth={2.2} />
-												)}
-												{isReady ? "就绪" : "开发中"}
-											</span>
-											{shortcut && (
-												<span className="ml-auto rounded-md bg-rf-bg/60 px-1.5 py-0.5 font-mono text-xs text-rf-text-muted">
-													x{shortcut}
-												</span>
-											)}
-										</div>
-
-										{/* 描述 */}
-										<p className="m-0 text-sm leading-relaxed text-rf-text-secondary">
-											{algo.description}
-										</p>
-
-										{/* 标签 */}
-										<div className="flex flex-wrap gap-1.5">
-											{algo.tags.map((tag) => (
-												<span
-													key={tag}
-													className="rounded-md bg-rf-bg/60 px-2 py-0.5 font-mono text-xs text-rf-text-muted"
-												>
-													{tag}
-												</span>
-											))}
-										</div>
-									</div>
-								</button>
-							);
-						})}
-					</div>
-				</section>
-
-				{/* 最近访问 */}
-				{recentAlgorithms.length > 0 && (
-					<section className="rf-reveal rf-delay-3 mt-6 flex items-center gap-1.5 font-mono text-xs text-rf-text-dim">
-						<History className="h-3.5 w-3.5" strokeWidth={2} />
-						<span>继续上次：</span>
-						{recentAlgorithms.map((id, i) => {
-							const meta = getAlgorithmMeta(id);
-							return (
-								<span key={id} className="inline-flex items-center">
-									{i > 0 && <span className="mx-1 text-rf-text-dim/50">·</span>}
-									<button
-										type="button"
-										onClick={() => navigateToLab(id)}
-										className="cursor-pointer border-none bg-transparent p-0 text-rf-text transition-colors hover:text-rf-primary"
-									>
-										{meta.title}
-									</button>
-								</span>
-							);
-						})}
-					</section>
-				)}
-
-				{/* Footer — 极简分隔线 */}
-				<footer className="rf-reveal rf-delay-4 mt-16 flex items-center justify-between border-t border-rf-border pt-6 font-mono text-xs text-rf-text-dim 2xl:mt-20">
-					<span>RiskFlow 3D · 金融算法交互实验室</span>
-					<span>MIT · React + Three.js + Tailwind v4</span>
-				</footer>
-			</div>
+				{/* 装饰性音量条 */}
+				<div className="flex h-8 items-end gap-1">
+					<div className="h-2 w-1 animate-pulse bg-rf-primary/20" />
+					<div className="h-4 w-1 animate-pulse bg-rf-primary/40" style={{ animationDelay: "0.1s" }} />
+					<div className="h-6 w-1 animate-pulse bg-rf-primary/60" style={{ animationDelay: "0.2s" }} />
+					<div className="h-3 w-1 animate-pulse bg-rf-primary/80" style={{ animationDelay: "0.3s" }} />
+					<div className="h-5 w-1 animate-pulse bg-rf-primary" style={{ animationDelay: "0.4s" }} />
+				</div>
+			</footer>
 		</div>
 	);
 }
