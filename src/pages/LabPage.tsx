@@ -20,7 +20,6 @@ export function LabPage() {
 	const algorithmId: AlgorithmId = isAlgorithmId(routeId ?? "")
 		? (routeId as AlgorithmId)
 		: DEFAULT_ALGORITHM_ID;
-	const [isLeftCollapsed, setLeftPanelCollapsed] = useState(false);
 	const [isRightCollapsed, setRightPanelCollapsed] = useState(false);
 	const navigateToLab = (id: AlgorithmId) => navigate(`/lab/${id}`);
 	const navigateToHub = () => navigate("/");
@@ -36,11 +35,11 @@ export function LabPage() {
 			const targetAlgorithmId = ALGORITHM_SHORTCUTS[event.key];
 			if (!targetAlgorithmId) return;
 			event.preventDefault();
-			navigateToLab(targetAlgorithmId);
+			navigate(`/lab/${targetAlgorithmId}`);
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [navigateToLab]);
+	}, [navigate]);
 
 	const computedSteps = isMonteCarlo
 		? Math.round(monteCarlo.metrics.progress * monteCarlo.input.steps)
@@ -81,12 +80,12 @@ export function LabPage() {
 	}, [historyData.highPrice, historyData.lowPrice, historyData.periodYears]);
 
 	return (
-		<div className="flex h-screen w-full flex-col bg-rf-bg font-body text-white selection:bg-rf-primary selection:text-white">
+		<div className="flex h-screen w-full flex-col bg-rf-bg pt-14 font-body text-white selection:bg-rf-primary selection:text-white">
 			{/* 扫描线覆盖层 */}
 			<div className="scanlines pointer-events-none fixed inset-0 z-50 opacity-10" />
 
 			{/* 顶部导航栏 */}
-			<header className="relative z-50 flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-rf-surface-solid/80 px-6 backdrop-blur-md">
+			<header className="fixed inset-x-0 top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-rf-surface-solid/80 px-6 backdrop-blur-md">
 				<div className="flex items-center gap-3">
 					<button
 						type="button"
@@ -98,6 +97,39 @@ export function LabPage() {
 					<h1 className="flex items-center font-display text-sm font-bold tracking-[0.2em] text-white">
 						RISKFLOW 
 					</h1>
+				</div>
+				<div className="flex-1 overflow-x-auto px-4">
+					<div className="flex w-max items-center gap-1">
+						{ALGORITHM_CATALOG.map((algo, index) => {
+							const isActive = algo.id === algorithmId;
+							const isDisabled = algo.id !== "monte-carlo";
+							return (
+								<button
+									type="button"
+									key={algo.id}
+									onClick={() => !isDisabled && navigateToLab(algo.id)}
+									disabled={isDisabled}
+									className={`group relative rounded-sm border px-2.5 py-1.5 text-left transition-all ${
+										isActive
+											? "border-rf-primary/50 bg-rf-primary/10"
+											: isDisabled
+											? "cursor-not-allowed border-transparent opacity-30"
+											: "border-transparent hover:border-white/10 hover:bg-white/5"
+									}`}
+									title={algo.title}
+								>
+									<div className="flex items-center gap-2">
+										<span className="font-mono text-[9px] text-gray-600">
+											{String(index + 1).padStart(2, "0")}
+										</span>
+										<span className={`truncate font-display text-[11px] font-medium ${isActive ? "text-white" : "text-gray-500"}`}>
+											{algo.title.toUpperCase()}
+										</span>
+									</div>
+								</button>
+							);
+						})}
+					</div>
 				</div>
 				<div className="flex items-center gap-4">
 					<div className="flex items-center gap-2">
@@ -125,78 +157,6 @@ export function LabPage() {
 
 			{/* 主内容区 */}
 			<div className="relative flex flex-1 overflow-hidden">
-				{/* 左侧模块选择栏 */}
-				<aside className={`glass-panel z-20 flex shrink-0 flex-col border-r border-white/10 transition-all duration-200 ${isLeftCollapsed ? "w-12" : "w-48"}`}>
-					{/* 模块列表 */}
-					<div className={`flex-1 overflow-hidden ${isLeftCollapsed ? "p-2" : "p-3"}`}>
-						{!isLeftCollapsed && (
-							<div className="mb-2 font-mono text-[9px] uppercase tracking-widest text-rf-primary/60">
-								Module
-							</div>
-						)}
-						<div className="space-y-1">
-							{ALGORITHM_CATALOG.map((algo, index) => {
-								const isActive = algo.id === algorithmId;
-								const isDisabled = algo.id !== "monte-carlo";
-								return (
-									<button
-										type="button"
-										key={algo.id}
-										onClick={() => !isDisabled && navigateToLab(algo.id)}
-										disabled={isDisabled}
-										title={isLeftCollapsed ? algo.title : undefined}
-										className={`group relative w-full overflow-hidden rounded-sm border transition-all ${
-											isLeftCollapsed ? "flex h-8 items-center justify-center p-0" : "px-2.5 py-1.5 text-left"
-										} ${
-											isActive
-												? "border-rf-primary/50 bg-rf-primary/10"
-												: isDisabled
-												? "cursor-not-allowed border-transparent opacity-30"
-												: "border-transparent hover:border-white/10 hover:bg-white/5"
-										}`}
-									>
-										{isLeftCollapsed ? (
-											<span className={`font-mono text-[10px] ${isActive ? "text-rf-primary" : "text-gray-500"}`}>
-												{String(index + 1).padStart(2, "0")}
-											</span>
-										) : (
-											<div className="flex items-center gap-2">
-												<span className="font-mono text-[9px] text-gray-600">
-													{String(index + 1).padStart(2, "0")}
-												</span>
-												<span className={`truncate font-display text-[11px] font-medium ${isActive ? "text-white" : "text-gray-500"}`}>
-													{algo.title.toUpperCase()}
-												</span>
-											</div>
-										)}
-									</button>
-								);
-							})}
-						</div>
-					</div>
-
-					{/* 底部操作按钮 */}
-					<div className={`flex items-center border-t border-white/5 ${isLeftCollapsed ? "flex-col gap-1 p-2" : "gap-1 p-2"}`}>
-						<button
-							type="button"
-							onClick={() => setLeftPanelCollapsed(!isLeftCollapsed)}
-							className={`flex h-7 items-center justify-center rounded border border-white/5 bg-transparent text-gray-500 transition-colors hover:border-white/15 hover:text-gray-300 ${isLeftCollapsed ? "w-7" : "w-7"}`}
-							title={isLeftCollapsed ? "展开菜单" : "收起菜单"}
-						>
-							<MaterialIcon name={isLeftCollapsed ? "chevron_right" : "chevron_left"} className="text-sm" />
-						</button>
-						{!isLeftCollapsed && (
-							<button
-								type="button"
-								onClick={navigateToHub}
-								className="flex h-7 w-7 items-center justify-center rounded border border-white/5 bg-transparent text-gray-500 transition-colors hover:border-red-500/30 hover:text-red-400"
-								title="退出实验室"
-							>
-								<MaterialIcon name="logout" className="text-sm" />
-							</button>
-						)}
-					</div>
-				</aside>
 
 				{/* 中间可视化区域 */}
 				<main className="relative flex flex-1 flex-col overflow-hidden bg-rf-bg min-h-0">
