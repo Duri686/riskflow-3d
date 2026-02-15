@@ -242,7 +242,7 @@ export function LabPage() {
 
 				{/* 右侧参数面板 */}
 				{!isRightCollapsed && (
-				<aside className="glass-panel z-20 flex w-64 shrink-0 flex-col overflow-y-auto border-l border-white/10">
+				<aside className="glass-panel rf-scrollbar z-20 flex w-64 shrink-0 flex-col overflow-y-auto border-l border-white/10">
 					{/* 历史数据输入区块 */}
 					<div className="border-b border-white/10 p-4">
 						<div className="mb-3 flex items-center justify-between">
