@@ -35,7 +35,7 @@ function calculateDistribution(
   const max = Math.max(...returns)
   const range = max - min
   const binCount = 30
-  const binWidth = range / binCount
+  const binWidth = range > 0 ? range / binCount : 1
 
   const bins: { x: number; count: number; percentage: number }[] = []
   for (let i = 0; i < binCount; i++) {
@@ -45,34 +45,36 @@ function calculateDistribution(
     bins.push({
       x: binStart + binWidth / 2,
       count,
-      percentage: (count / returns.length) * 100,
+      percentage: returns.length > 0 ? (count / returns.length) * 100 : 0,
     })
   }
 
   const n = sorted.length
-  const mean = returns.reduce((a, b) => a + b, 0) / n
-  const median = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)]
-  const p05 = sorted[Math.floor(n * 0.05)]
-  const p95 = sorted[Math.floor(n * 0.95)]
+  const mean = n > 0 ? returns.reduce((a, b) => a + b, 0) / n : 0
+  const median = n === 0 ? 0 : n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)]
+  const p05 = n > 0 ? sorted[Math.floor(n * 0.05)] : 0
+  const p95 = n > 0 ? sorted[Math.floor(n * 0.95)] : 0
   const var95 = -p05
   const tailCount = Math.max(1, Math.floor(n * 0.05))
   const tail = sorted.slice(0, tailCount)
-  const cvar95 = tail.reduce((a, b) => a + b, 0) / tail.length
+  const cvar95 = tail.length > 0 ? tail.reduce((a, b) => a + b, 0) / tail.length : 0
   const profitCount = returns.filter((r) => r > 0).length
-  const profitProbability = (profitCount / n) * 100
+  const profitProbability = n > 0 ? (profitCount / n) * 100 : 0
   const upDownRatio = p95 > 0 && cvar95 < 0 ? (p95 / Math.abs(cvar95)) : 0
 
   const densityCurve: { x: number; y: number }[] = []
-  const bandwidth = range / 15
+  const bandwidth = range > 0 ? range / 15 : 1
   for (let i = 0; i <= 50; i++) {
-    const x = min + (i / 50) * range
+    const x = min + (i / 50) * (range > 0 ? range : 1)
     let density = 0
     for (const r of returns) {
       const diff = (x - r) / bandwidth
       density += Math.exp(-0.5 * diff * diff)
     }
     density /= returns.length * bandwidth * Math.sqrt(2 * Math.PI)
-    densityCurve.push({ x, y: density })
+    if (Number.isFinite(density)) {
+      densityCurve.push({ x, y: density })
+    }
   }
 
   return {
@@ -93,6 +95,37 @@ function calculateDistribution(
   }
 }
 
+/**
+ * 标签防碰撞：对一组 x 坐标进行偏移，避免文字重叠
+ * 使用上下交替偏移策略，让标签错开排列
+ * 返回 y 偏移量数组（负值=向上，正值=向下）
+ */
+function resolveLabels(positions: { x: number; label: string }[]): number[] {
+  const minGap = 80 // 最小 x 间距（像素）
+  const stepSize = 18 // 每级偏移量
+  const offsets = positions.map(() => 0)
+
+  // 按 x 排序的索引
+  const sorted = positions
+    .map((p, i) => ({ ...p, i }))
+    .sort((a, b) => a.x - b.x)
+
+  for (let k = 1; k < sorted.length; k++) {
+    const prev = sorted[k - 1]
+    const curr = sorted[k]
+    if (Math.abs(curr.x - prev.x) < minGap) {
+      // 交替方向：前一个下移 → 当前上移；前一个上移 → 当前下移
+      if (offsets[prev.i] <= 0) {
+        offsets[curr.i] = Math.abs(offsets[prev.i]) + stepSize
+      } else {
+        offsets[curr.i] = -(offsets[prev.i] + stepSize)
+      }
+    }
+  }
+
+  return offsets
+}
+
 export function ReturnDistribution({
   terminalPrices,
   initialPrice,
@@ -108,7 +141,7 @@ export function ReturnDistribution({
 
   const width = 800
   const height = 400
-  const padding = { top: 40, right: 80, bottom: 60, left: 60 }
+  const padding = { top: 50, right: 130, bottom: 60, left: 60 }
   const chartWidth = width - padding.left - padding.right
   const chartHeight = height - padding.top - padding.bottom
 
@@ -116,13 +149,14 @@ export function ReturnDistribution({
   const xMax = Math.max(stats.p95 + 10, 50)
   const xScale = (x: number) => padding.left + ((x - xMin) / (xMax - xMin)) * chartWidth
 
-  const maxCount = Math.max(...bins.map((b) => b.percentage))
+  const maxCount = Math.max(1, ...bins.map((b) => b.percentage))
 
-  const maxDensity = Math.max(...densityCurve.map((d) => d.y))
+  const maxDensity = Math.max(1e-10, ...densityCurve.map((d) => d.y))
   const densityYScale = (y: number) =>
     padding.top + chartHeight - (y / maxDensity) * chartHeight * 0.9
 
   const densityPath = densityCurve
+    .filter((d) => Number.isFinite(d.x) && Number.isFinite(d.y))
     .map((d, i) => `${i === 0 ? 'M' : 'L'} ${xScale(d.x)} ${densityYScale(d.y)}`)
     .join(' ')
 
@@ -132,6 +166,16 @@ export function ReturnDistribution({
   const medianX = xScale(stats.median)
   const cvar95X = xScale(stats.cvar95)
 
+  // 计算标签 y 偏移，防止碰撞
+  const labelPositions = [
+    { x: cvar95X, label: 'cvar95' },
+    { x: p05X, label: 'p05' },
+    { x: medianX, label: 'median' },
+    { x: zeroX, label: 'zero' },
+    { x: p95X, label: 'p95' },
+  ]
+  const labelOffsets = resolveLabels(labelPositions)
+
   return (
     <div className="flex h-full w-full flex-col">
       <svg
@@ -140,13 +184,14 @@ export function ReturnDistribution({
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
+          {/* 颜色纠正：绿色=盈利，红色=亏损（金融惯例） */}
           <linearGradient id="profitGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#FF4757" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#FF4757" stopOpacity="0.3" />
+            <stop offset="0%" stopColor="#00D4AA" stopOpacity={0.9} />
+            <stop offset="100%" stopColor="#00D4AA" stopOpacity={0.3} />
           </linearGradient>
           <linearGradient id="lossGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#00D4AA" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#00D4AA" stopOpacity="0.3" />
+            <stop offset="0%" stopColor="#FF4757" stopOpacity={0.9} />
+            <stop offset="100%" stopColor="#FF4757" stopOpacity={0.3} />
           </linearGradient>
           <filter id="glow">
             <feGaussianBlur stdDeviation="2" result="blur" />
@@ -157,21 +202,21 @@ export function ReturnDistribution({
           </filter>
         </defs>
 
-        {/* 背景区域：亏损区（左/绿）和盈利区（右/红） */}
+        {/* 背景区域：亏损区（左/红）和盈利区（右/绿） */}
         <rect
           x={padding.left}
           y={padding.top}
-          width={zeroX - padding.left}
+          width={Math.max(0, zeroX - padding.left)}
           height={chartHeight}
-          fill="#00D4AA"
+          fill="#FF4757"
           opacity={0.03}
         />
         <rect
           x={zeroX}
           y={padding.top}
-          width={padding.left + chartWidth - zeroX}
+          width={Math.max(0, padding.left + chartWidth - zeroX)}
           height={chartHeight}
-          fill="#FF4757"
+          fill="#00D4AA"
           opacity={0.03}
         />
 
@@ -179,8 +224,10 @@ export function ReturnDistribution({
         {bins.map((bin, i) => {
           const barWidth = (chartWidth / bins.length) * 0.8
           const barHeight = (bin.percentage / maxCount) * chartHeight
+          // NaN 守卫
+          const safeBarHeight = Number.isFinite(barHeight) ? barHeight : 0
           const x = xScale(bin.x) - barWidth / 2
-          const y = padding.top + chartHeight - barHeight
+          const y = padding.top + chartHeight - safeBarHeight
           const isProfit = bin.x > 0
           return (
             <rect
@@ -188,7 +235,7 @@ export function ReturnDistribution({
               x={x}
               y={y}
               width={barWidth}
-              height={barHeight}
+              height={safeBarHeight}
               fill={isProfit ? 'url(#profitGrad)' : 'url(#lossGrad)'}
               rx={2}
               style={{ transition: 'height 0.3s ease-out, y 0.3s ease-out' }}
@@ -197,7 +244,9 @@ export function ReturnDistribution({
         })}
 
         {/* 密度曲线 */}
-        <path d={densityPath} fill="none" stroke="#FFFFFF" strokeWidth={2} opacity={0.6} />
+        {densityPath && (
+          <path d={densityPath} fill="none" stroke="#FFFFFF" strokeWidth={2} opacity={0.6} />
+        )}
 
         {/* 零线（盈亏平衡点） */}
         <line
@@ -209,49 +258,49 @@ export function ReturnDistribution({
           strokeWidth={2}
           strokeDasharray="4,4"
         />
-        <text x={zeroX} y={padding.top - 10} fill="#FFFFFF" fontSize={11} textAnchor="middle">
+        <text x={zeroX} y={padding.top - 10 + labelOffsets[3]} fill="#FFFFFF" fontSize={11} textAnchor="middle">
           盈亏平衡
         </text>
 
-        {/* P5 标注（5%分位/绿色） */}
-        <line
-          x1={p05X}
-          y1={padding.top}
-          x2={p05X}
-          y2={padding.top + chartHeight}
-          stroke="#00D4AA"
-          strokeWidth={2}
-          filter="url(#glow)"
-        />
-        <text x={p05X} y={padding.top - 10} fill="#00D4AA" fontSize={10} textAnchor="middle">
-          P5: {stats.p05.toFixed(1)}%
-        </text>
-
-        {/* CVaR 95% 标注（极端亏损均值/绿色虚线） */}
+        {/* CVaR95 标注（极端亏损均值/红色虚线） */}
         <line
           x1={cvar95X}
           y1={padding.top}
           x2={cvar95X}
           y2={padding.top + chartHeight}
-          stroke="#00D4AA"
+          stroke="#FF4757"
           strokeWidth={1.5}
           strokeDasharray="3,3"
         />
-        <text x={cvar95X} y={padding.top - 10} fill="#00D4AA" fontSize={10} textAnchor="middle">
+        <text x={cvar95X} y={padding.top - 10 + labelOffsets[0]} fill="#FF4757" fontSize={10} textAnchor="middle">
           CVaR95: {stats.cvar95.toFixed(1)}%
         </text>
 
-        {/* P95 标注（最大盈利/红色） */}
+        {/* P5 标注（5%分位/红色） */}
+        <line
+          x1={p05X}
+          y1={padding.top}
+          x2={p05X}
+          y2={padding.top + chartHeight}
+          stroke="#FF4757"
+          strokeWidth={2}
+          filter="url(#glow)"
+        />
+        <text x={p05X} y={padding.top - 10 + labelOffsets[1]} fill="#FF4757" fontSize={10} textAnchor="middle">
+          P5: {stats.p05.toFixed(1)}%
+        </text>
+
+        {/* P95 标注（95%分位/绿色） */}
         <line
           x1={p95X}
           y1={padding.top}
           x2={p95X}
           y2={padding.top + chartHeight}
-          stroke="#FF4757"
+          stroke="#00D4AA"
           strokeWidth={1.5}
           strokeDasharray="3,3"
         />
-        <text x={p95X} y={padding.top - 10} fill="#FF4757" fontSize={10} textAnchor="middle">
+        <text x={p95X} y={padding.top - 10 + labelOffsets[4]} fill="#00D4AA" fontSize={10} textAnchor="middle">
           P95: +{stats.p95.toFixed(1)}%
         </text>
 
@@ -264,7 +313,7 @@ export function ReturnDistribution({
           stroke="#E5E7EB"
           strokeWidth={2}
         />
-        <text x={medianX} y={padding.top - 10} fill="#E5E7EB" fontSize={10} textAnchor="middle">
+        <text x={medianX} y={padding.top - 10 + labelOffsets[2]} fill="#E5E7EB" fontSize={10} textAnchor="middle">
           P50: {stats.median > 0 ? '+' : ''}{stats.median.toFixed(1)}%
         </text>
 
@@ -320,28 +369,28 @@ export function ReturnDistribution({
         </text>
 
         {/* 右侧统计面板（决策三联表） */}
-        <g transform={`translate(${width - padding.right + 10}, ${padding.top})`}>
+        <g transform={`translate(${width - padding.right + 15}, ${padding.top})`}>
           <text x={0} y={0} fill="#E5E7EB" fontSize={11} fontWeight="600" letterSpacing="0.05em">
             决策指标
           </text>
 
           {/* 胜率 */}
-          <text x={0} y={26} fill={stats.profitProbability >= 55 ? '#FF4757' : '#00D4AA'} fontSize={16} fontWeight="600">
+          <text x={0} y={26} fill={stats.profitProbability >= 50 ? '#00D4AA' : '#FF4757'} fontSize={16} fontWeight="600">
             胜率 {stats.profitProbability.toFixed(0)}%
           </text>
 
           {/* 中位数收益 P50 */}
-          <text x={0} y={52} fill={stats.median >= 0 ? '#FF4757' : '#00D4AA'} fontSize={12} fontWeight="600">
+          <text x={0} y={52} fill={stats.median >= 0 ? '#00D4AA' : '#FF4757'} fontSize={12} fontWeight="600">
             P50 {stats.median > 0 ? '+' : ''}{stats.median.toFixed(1)}%
           </text>
 
           {/* CVaR95 */}
-          <text x={0} y={78} fill="#00D4AA" fontSize={12} fontWeight="600">
-            CVaR95 {stats.cvar95.toFixed(1)}%
+          <text x={0} y={78} fill="#FF4757" fontSize={12} fontWeight="600">
+            CVaR {stats.cvar95.toFixed(1)}%
           </text>
 
           {/* P95 */}
-          <text x={0} y={104} fill="#FF4757" fontSize={12} fontWeight="600">
+          <text x={0} y={104} fill="#00D4AA" fontSize={12} fontWeight="600">
             P95 +{stats.p95.toFixed(1)}%
           </text>
 
@@ -350,10 +399,10 @@ export function ReturnDistribution({
             盈亏比 {stats.upDownRatio.toFixed(2)}
           </text>
 
-          <rect x={0} y={150} width={90} height={1} fill="#374151" />
+          <rect x={0} y={148} width={100} height={1} fill="#374151" />
 
-          <text x={0} y={170} fill="#6B7280" fontSize={9}>
-            模拟路径: {paths}
+          <text x={0} y={168} fill="#6B7280" fontSize={9}>
+            模拟路径: {visiblePaths}/{paths}
           </text>
         </g>
       </svg>

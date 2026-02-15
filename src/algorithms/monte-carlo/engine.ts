@@ -76,7 +76,7 @@ export const defaultMonteCarloInput: MonteCarloInput = {
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value))
 
-const sanitizeInput = (input: MonteCarloInput): MonteCarloInput => ({
+export const sanitizeInput = (input: MonteCarloInput): MonteCarloInput => ({
   paths: Math.max(16, Math.floor(input.paths)),
   steps: Math.max(12, Math.floor(input.steps)),
   years: Math.max(0.1, input.years),
@@ -87,7 +87,7 @@ const sanitizeInput = (input: MonteCarloInput): MonteCarloInput => ({
   playbackSpeed: Math.max(1, Math.floor(input.playbackSpeed)),
 })
 
-const createMulberry32 = (seed: number): (() => number) => {
+export const createMulberry32 = (seed: number): (() => number) => {
   let state = seed >>> 0
 
   return () => {
@@ -98,7 +98,7 @@ const createMulberry32 = (seed: number): (() => number) => {
   }
 }
 
-const createNormalSampler = (uniform: () => number): (() => number) => {
+export const createNormalSampler = (uniform: () => number): (() => number) => {
   let spare: number | null = null
 
   return () => {
@@ -117,7 +117,7 @@ const createNormalSampler = (uniform: () => number): (() => number) => {
   }
 }
 
-const quantile = (sortedValues: number[], q: number): number => {
+export const quantile = (sortedValues: number[], q: number): number => {
   if (sortedValues.length === 0) {
     return 0
   }
@@ -134,7 +134,7 @@ const quantile = (sortedValues: number[], q: number): number => {
   return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight
 }
 
-const calculateRiskMetrics = (terminalPrices: number[], initialPrice: number): MonteCarloRiskMetrics => {
+export const calculateRiskMetrics = (terminalPrices: number[], initialPrice: number): MonteCarloRiskMetrics => {
   const returns = terminalPrices.map((price) => price / initialPrice - 1)
   const total = returns.reduce((sum, value) => sum + value, 0)
   const expectedReturn = total / returns.length
@@ -177,7 +177,7 @@ const calculateRiskMetrics = (terminalPrices: number[], initialPrice: number): M
   }
 }
 
-const buildCloudData = (rawInput: MonteCarloInput): MonteCarloCloudData => {
+export const buildCloudData = (rawInput: MonteCarloInput): MonteCarloCloudData => {
   const input = sanitizeInput(rawInput)
   const uniform = createMulberry32(input.seed)
   const normal = createNormalSampler(uniform)

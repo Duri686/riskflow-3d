@@ -6,4 +6,13 @@ import { defineConfig } from "vite";
 export default defineConfig({
 	base: "./",
 	plugins: [tailwindcss(), react()],
+	server: {
+		proxy: {
+			"/binance-api": {
+				target: "https://api.binance.com",
+				changeOrigin: true,
+				rewrite: (path) => path.replace(/^\/binance-api/, "/api/v3"),
+			},
+		},
+	},
 });
