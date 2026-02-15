@@ -1,42 +1,431 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+@import "tailwindcss";
+
+/*
+ * RiskFlow 3D — Design Tokens
+ * Tailwind CSS v4 CSS-first configuration
+ * 视觉方案：能量网格 (The Kinetic Grid)
+ */
+@theme {
+  /* 深色科技背景色系 — 极深靛蓝基底 */
+  --color-rf-bg: #05080F;
+  --color-rf-bg-elevated: rgba(8, 14, 26, 0.74);
+  --color-rf-bg-card: rgba(255, 255, 255, 0.03);
+  --color-rf-bg-section: rgba(14, 34, 52, 0.9);
+  --color-rf-bg-section-body: rgba(9, 22, 34, 0.6);
+
+  /* 边框色系 — 超细能量线 */
+  --color-rf-border: rgba(255, 255, 255, 0.08);
+  --color-rf-border-hover: rgba(0, 255, 157, 0.5);
+  --color-rf-border-active: rgba(0, 255, 157, 0.7);
+  --color-rf-border-btn: rgba(255, 255, 255, 0.12);
+  --color-rf-border-btn-hover: rgba(0, 255, 157, 0.5);
+
+  /* 文字色系 — 高对比度白/灰白 */
+  --color-rf-text: rgba(255, 255, 255, 0.9);
+  --color-rf-text-secondary: #94A3B8;
+  --color-rf-text-muted: #64748B;
+  --color-rf-text-dim: #475569;
+  --color-rf-text-label: #CBD5E1;
+  --color-rf-text-link: #94A3B8;
+  --color-rf-text-nav: #64748B;
+  --color-rf-text-nav-em: #94A3B8;
+
+  /* 状态色 */
+  --color-rf-ready: #00FF9D;
+  --color-rf-ready-bg: rgba(0, 255, 157, 0.1);
+  --color-rf-wip: #FFB224;
+  --color-rf-wip-bg: rgba(255, 178, 36, 0.1);
+
+  /* 强调色 — 荧光青 + 量化蓝 */
+  --color-rf-accent: #2E5BFF;
+  --color-rf-primary: #00FF9D;
+  --color-rf-gradient-start: #00FF9D;
+  --color-rf-gradient-end: #2E5BFF;
+
+  /* 按钮渐变 */
+  --color-rf-btn-from: rgba(0, 255, 157, 0.15);
+  --color-rf-btn-to: rgba(0, 255, 157, 0.05);
+
+  /* HUD */
+  --color-rf-hud-bg: rgba(5, 8, 15, 0.85);
+  --color-rf-hud-border: rgba(255, 255, 255, 0.08);
+
+  /* 进度条 */
+  --color-rf-progress-track: rgba(255, 255, 255, 0.06);
+
+  /* 3D 场景 */
+  --color-rf-scene-bg: #030610;
+
+  /* 字体 — 硬朗且现代 */
+  --font-sans: 'JetBrains Mono', 'SF Mono', 'PingFang SC', 'Microsoft YaHei', monospace;
+  --font-display: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+
+  /* 尺寸 */
+  --spacing-112: 28rem;
+  --spacing-144: 36rem;
+
+  /* 圆角 — 适中且现代 */
+  --radius-panel: 12px;
+  --radius-card: 12px;
+  --radius-btn: 4px;
+  --radius-pill: 999px;
+  --radius-tag: 4px;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+/* 全局基础样式 */
+@layer base {
+  :root {
+    color: var(--color-rf-text);
+    background: #05080F;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  to {
-    transform: rotate(360deg);
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  h1 {
+    margin: 6px 0;
+    font-size: clamp(24px, 4vw, 34px);
+    line-height: 1.2;
+  }
+
+  button {
+    border: 1px solid var(--color-rf-border-btn);
+    background: linear-gradient(135deg, var(--color-rf-btn-from), var(--color-rf-btn-to));
+    color: var(--color-rf-text);
+    border-radius: var(--radius-btn);
+    padding: 8px 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  button:hover {
+    border-color: var(--color-rf-border-btn-hover);
+  }
+
+  input[type='range'] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--color-rf-progress-track);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    margin: 6px 0;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--color-rf-accent);
+    cursor: pointer;
+    border: 2px solid rgba(4, 6, 13, 0.9);
+    box-shadow: 0 0 0 3px rgba(88, 169, 255, 0.15);
+    transition: box-shadow 150ms ease;
+  }
+
+  input[type='range']::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 0 5px rgba(88, 169, 255, 0.25);
+  }
+
+  input[type='range']::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--color-rf-accent);
+    cursor: pointer;
+    border: 2px solid rgba(4, 6, 13, 0.9);
+    box-shadow: 0 0 0 3px rgba(88, 169, 255, 0.15);
+  }
+
+  input[type='range']::-moz-range-track {
+    height: 4px;
+    background: var(--color-rf-progress-track);
+    border-radius: 2px;
+    border: none;
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+/* 3D 场景 HUD 覆盖层 */
+@layer components {
+  .scene-hud {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    display: grid;
+    gap: 6px;
+    background: var(--color-rf-hud-bg);
+    border: 1px solid var(--color-rf-hud-border);
+    border-radius: var(--radius-btn);
+    padding: 10px 14px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    backdrop-filter: blur(8px);
   }
-}
 
-.card {
-  padding: 2em;
-}
+  .scene-hud-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
 
-.read-the-docs {
-  color: #888;
+  .progress-track {
+    height: 8px;
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    background: var(--color-rf-progress-track);
+  }
+
+  .progress-bar {
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(90deg, var(--color-rf-gradient-start), var(--color-rf-gradient-end));
+  }
+
+  .rf-brand-badge {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+  }
+
+  .rf-icon-accent {
+    color: var(--color-rf-primary);
+    border: 1px solid rgba(0, 255, 157, 0.2);
+    background: rgba(0, 255, 157, 0.06);
+  }
+
+  @keyframes rf-reveal {
+    0% {
+      opacity: 0;
+      transform: translateY(12px);
+      filter: blur(6px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+
+  @keyframes rf-float {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0, -10px, 0);
+    }
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .rf-reveal {
+    animation: rf-reveal 720ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+    will-change: transform, opacity, filter;
+  }
+
+  .rf-delay-1 {
+    animation-delay: 40ms;
+  }
+  .rf-delay-2 {
+    animation-delay: 110ms;
+  }
+  .rf-delay-3 {
+    animation-delay: 180ms;
+  }
+  .rf-delay-4 {
+    animation-delay: 250ms;
+  }
+  .rf-delay-5 {
+    animation-delay: 320ms;
+  }
+
+  .rf-float {
+    animation: rf-float 8s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .rf-float-slow {
+    animation-duration: 10.5s;
+  }
+
+  .rf-float-delay {
+    animation-delay: 800ms;
+  }
+
+  /* 能量网格卡片 — Bento Grid 研究单元 */
+  .rf-card-hover {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-card);
+    transition:
+      transform 380ms cubic-bezier(0.2, 0.9, 0.2, 1),
+      border-color 380ms ease,
+      box-shadow 380ms ease;
+  }
+
+  .rf-card-hover > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* 径向光晕底层 — 默认隐藏 */
+  .rf-card-hover::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    opacity: 0;
+    background: radial-gradient(
+      600px circle at 50% 50%,
+      rgba(0, 255, 157, 0.06) 0%,
+      transparent 60%
+    );
+    transition: opacity 480ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  }
+
+  .rf-card-hover:hover {
+    transform: translateY(-4px);
+    border-color: transparent;
+    box-shadow: 0 0 30px rgba(0, 255, 157, 0.15);
+  }
+
+  .rf-card-hover:hover::before {
+    opacity: 1;
+  }
+
+  /* 边框渐变光效 — hover 时激活 */
+  .rf-glow-hover {
+    background-clip: padding-box;
+  }
+
+  .rf-glow-hover::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    z-index: 0;
+    inset: -1px;
+    border-radius: inherit;
+    opacity: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 255, 157, 0.5) 0%,
+      rgba(46, 91, 255, 0.3) 50%,
+      rgba(0, 255, 157, 0.2) 100%
+    );
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    padding: 1px;
+    transition: opacity 480ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  }
+
+  .rf-glow-hover:hover::after {
+    opacity: 1;
+  }
+
+  /* 标题 hover 锐度增强 */
+  .rf-card-hover:hover .rf-card-title {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  }
+
+  .rf-pill-hover {
+    transition:
+      transform 220ms cubic-bezier(0.2, 0.9, 0.2, 1),
+      border-color 280ms ease,
+      background-color 280ms ease,
+      box-shadow 280ms ease;
+  }
+
+  .rf-pill-hover:hover {
+    transform: translateY(-1px);
+    border-color: rgba(0, 255, 157, 0.5);
+    box-shadow: 0 0 20px rgba(0, 255, 157, 0.1);
+  }
+
+  /* 网格背景 — CSS 实现，4K 清晰 */
+  .rf-grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* 入场序列动画 — 分步延迟 */
+  @keyframes rf-grid-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .rf-grid-enter {
+    animation: rf-grid-fade 1200ms ease-out both;
+  }
+
+  /* 卡片依次浮现 — 0.1s 递增 */
+  .rf-stagger-1 { animation-delay: 400ms; }
+  .rf-stagger-2 { animation-delay: 500ms; }
+  .rf-stagger-3 { animation-delay: 600ms; }
+  .rf-stagger-4 { animation-delay: 700ms; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rf-reveal {
+      animation: none;
+    }
+    .rf-float,
+    .rf-float-slow {
+      animation: none;
+    }
+    .rf-card-hover,
+    .rf-pill-hover {
+      transition: none;
+    }
+    .rf-card-hover::before,
+    .rf-glow-hover::after {
+      display: none;
+    }
+    .rf-grid-enter {
+      animation: none;
+    }
+  }
+
+  /* 移动端性能优化 — 移除复杂光效 */
+  @media (max-width: 640px) {
+    .rf-card-hover::before,
+    .rf-glow-hover::after {
+      display: none;
+    }
+    .rf-card-hover:hover {
+      transform: none;
+      box-shadow: none;
+    }
+    .rf-card-hover {
+      backdrop-filter: none;
+    }
+  }
 }

@@ -1,4 +1,4 @@
-import type { EngineClock, VisualizationEngine } from '../engine/types'
+import type { EngineClock, VisualizationEngine } from '../../engine/types'
 
 export interface MonteCarloInput {
   paths: number
@@ -244,7 +244,7 @@ export const monteCarloEngine: VisualizationEngine<
   MonteCarloMetricsPanel
 > = {
   id: 'monte-carlo-gbm',
-  displayName: 'Monte Carlo Path Cloud',
+  displayName: '蒙特卡洛路径点云',
 
   createInitialState: (input) => ({
     cloud: buildCloudData(input),

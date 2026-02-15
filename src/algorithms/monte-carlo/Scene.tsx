@@ -2,7 +2,7 @@ import { Grid, OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import type { BufferGeometry } from 'three'
-import type { MonteCarloRenderLayer } from '../algorithms/monteCarlo'
+import type { MonteCarloRenderLayer } from './engine'
 
 interface PathCloudSceneProps {
   layer: MonteCarloRenderLayer
@@ -26,7 +26,7 @@ function PathCloudPoints({ layer }: PathCloudSceneProps) {
   )
 }
 
-export function PathCloudScene({ layer }: PathCloudSceneProps) {
+export function MonteCarloScene({ layer }: PathCloudSceneProps) {
   return (
     <Canvas camera={{ position: [18, 12, 18], fov: 50 }} dpr={[1, 2]}>
       <color attach="background" args={['#02050f']} />

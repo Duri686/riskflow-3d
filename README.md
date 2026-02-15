@@ -62,6 +62,8 @@ RiskFlow 3D 是一个开源项目，目标是将金融量化算法以可交互�
 
 - Vite + React + TypeScript
 - Three.js（通过 `@react-three/fiber` + `@react-three/drei`）
+- Tailwind CSS v4（`@tailwindcss/vite` 插件，CSS-first 配置）
+- React Router v7（客户端路由）
 
 ## Getting Started
 
@@ -83,18 +85,50 @@ npm run dev
 riskflow-3d/
 ├─ docs/
 │  ├─ phase-1-algorithm-scope.md
-│  └─ visualization-engine-interface.md
+│  ├─ visualization-engine-interface.md
+│  └─ plans/
 ├─ src/
-│  ├─ algorithms/
-│  │  └─ monteCarlo.ts
-│  ├─ components/
-│  │  └─ PathCloudScene.tsx
+│  ├─ algorithms/                    # 算法模块（自包含）
+│  │  ├─ registry.ts                 # 算法目录、元数据、快捷键
+│  │  ├─ monte-carlo/                # 蒙特卡洛模块
+│  │  │  ├─ engine.ts                # 纯计算引擎
+│  │  │  ├─ useSession.ts            # React 会话 hook
+│  │  │  ├─ Scene.tsx                # 3D 路径点云场景
+│  │  │  ├─ ParamsPanel.tsx          # 参数滑块面板
+│  │  │  └─ MetricsPanel.tsx         # 风险指标面板
+│  │  ├─ black-scholes/              # WIP
+│  │  ├─ markowitz/                  # WIP
+│  │  └─ kalman-filter/              # WIP
+│  ├─ components/                    # 算法无关的共享组件
+│  │  ├─ PanelSection.tsx
+│  │  └─ WipFallback.tsx
 │  ├─ engine/
-│  │  └─ types.ts
-│  ├─ App.tsx
-│  └─ main.tsx
+│  │  └─ types.ts                    # VisualizationEngine 统一接口
+│  ├─ layouts/                       # 布局组件
+│  │  └─ parts/
+│  │     ├─ TopBar.tsx
+│  │     ├─ AlgorithmNav.tsx
+│  │     └─ TimelineBar.tsx
+│  ├─ pages/                         # 路由入口页面
+│  │  ├─ HubPage.tsx                 # 算法大厅
+│  │  └─ LabPage.tsx                 # 统一工作台
+│  ├─ store/                         # 全局状态管理
+│  │  ├─ provider.tsx
+│  │  ├─ context.ts
+│  │  ├─ types.ts
+│  │  └─ useLabStore.ts
+│  ├─ App.tsx                        # 根组件 + 路由
+│  ├─ main.tsx                       # 入口
+│  └─ app.css                        # Tailwind CSS v4 入口 + Design Token
 └─ package.json
 ```
+
+### 新增算法指南
+
+新增算法只需两步：
+
+1. 在 `src/algorithms/<algorithm-id>/` 创建 `engine.ts`、`useSession.ts`、`Scene.tsx`、`ParamsPanel.tsx`、`MetricsPanel.tsx`
+2. 在 `src/algorithms/registry.ts` 的 `ALGORITHM_CATALOG` 中注册
 
 ## Roadmap (Short Term)
 
