@@ -29,13 +29,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'yarn'
 
       - name: Enable Corepack (Yarn)
         run: corepack enable
 
       - name: Install dependencies
+        env:
+          YARN_IGNORE_ENGINES: 'true'
         run: yarn install --immutable
 
       - name: Build
