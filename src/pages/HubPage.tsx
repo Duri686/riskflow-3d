@@ -39,13 +39,6 @@ export function HubPage() {
 			{/* 顶部导航 */}
 			<nav className="rf-reveal absolute left-0 top-0 z-20 flex w-full items-center justify-between px-8 py-6" style={{ animationDelay: "0.5s" }}>
 				<RiskFlowLogo />
-				<div className="hidden items-center gap-6 font-mono text-xs text-rf-accent/70 md:flex">
-					<div className="flex items-center gap-2">
-						<span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-						<span>SYSTEM_ONLINE</span>
-					</div>
-					<span>v.3.0.1-BETA</span>
-				</div>
 			</nav>
 
 			{/* 主内容区 */}
@@ -65,7 +58,7 @@ export function HubPage() {
 					<div className="rf-reveal mt-6 flex items-center justify-center gap-2" style={{ animationDelay: "0.3s" }}>
 						<MaterialIcon name="terminal" className="animate-pulse text-sm text-rf-accent md:text-base" />
 						<p className="font-mono text-sm tracking-wide text-rf-accent md:text-base lg:text-lg">
-							Stop reading formulas. Start exploring
+							用数据驱动你的风险判断
 							<span className="animate-blink text-white">_</span>
 						</p>
 					</div>
@@ -85,30 +78,19 @@ export function HubPage() {
 						{/* 闪光效果 */}
 						<div className="absolute inset-0 h-full w-full -translate-x-full skew-x-12 bg-linear-to-r from-transparent via-white/10 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
 						<span className="relative z-10 flex items-center gap-3">
-							INITIALIZE LAB
+							启动实验
 							<ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" strokeWidth={2} />
 						</span>
 					</button>
 
 					<p className="mt-4 font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">
-						Secure Connection // Port 443
+						支持快捷键：⌘1/2/3 切换算法
 					</p>
 				</div>
 			</main>
 
 			{/* 底部状态栏 */}
-			<footer className="rf-reveal pointer-events-none absolute bottom-0 left-0 z-20 flex w-full items-end justify-between px-8 py-6" style={{ animationDelay: "0.8s" }}>
-				<div className="flex flex-col gap-1 font-mono text-[10px] text-white/40">
-					<div className="flex items-center gap-2">
-						<MaterialIcon name="memory" className="text-[14px]" />
-						<span>MEM_USAGE: 14%</span>
-					</div>
-					<div className="flex items-center gap-2">
-						<MaterialIcon name="network_check" className="text-[14px]" />
-						<span>LATENCY: 12ms</span>
-					</div>
-				</div>
-
+			<footer className="rf-reveal pointer-events-none absolute bottom-0 left-0 z-20 flex w-full items-end justify-end px-8 py-6" style={{ animationDelay: "0.8s" }}>
 				{/* 装饰性音量条 */}
 				<div className="flex h-8 items-end gap-1">
 					<div className="h-2 w-1 animate-pulse bg-rf-primary/20" />
