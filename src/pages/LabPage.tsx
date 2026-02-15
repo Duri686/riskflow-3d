@@ -1,11 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
 	ALGORITHM_CATALOG,
 	ALGORITHM_SHORTCUTS,
 	type AlgorithmId,
 	getAlgorithmMeta,
 } from "../algorithms/registry";
-import { MonteCarloScene } from "../algorithms/monte-carlo/Scene";
+import { ReturnDistribution } from "../algorithms/monte-carlo/ReturnDistribution";
+import { ProbabilityCone } from "../algorithms/monte-carlo/ProbabilityCone";
 import { useMonteCarloSession } from "../algorithms/monte-carlo/useSession";
 import { RiskFlowLogo, MaterialIcon } from "../components/Logo";
 import { useLabStore } from "../store/useLabStore";
@@ -48,6 +49,39 @@ export function LabPage() {
 		: 0;
 	const totalSteps = isMonteCarlo ? monteCarlo.input.steps : 0;
 
+	// 历史数据输入状态
+	const [historyData, setHistoryData] = useState({
+		highPrice: monteCarlo.input.initialPrice * 1.3,
+		lowPrice: monteCarlo.input.initialPrice * 0.7,
+		periodYears: 1,
+	});
+
+	// 计算估算波动率
+	const estimatedVolatility = (() => {
+		const { highPrice, lowPrice, periodYears } = historyData;
+		if (highPrice <= lowPrice || lowPrice <= 0) return 0;
+		const logRatio = Math.log(highPrice / lowPrice);
+		const parkinsonFactor = 1 / Math.sqrt(4 * Math.log(2));
+		return (parkinsonFactor * logRatio) / Math.sqrt(periodYears);
+	})();
+
+	// 历史数据变化时自动更新模拟参数
+	useEffect(() => {
+		const { highPrice, lowPrice, periodYears } = historyData;
+		if (highPrice <= lowPrice || lowPrice <= 0) return;
+
+		const currentPrice = monteCarlo.input.initialPrice;
+		const midPrice = (highPrice + lowPrice) / 2;
+		const impliedReturn = (midPrice - currentPrice) / currentPrice / periodYears;
+
+		monteCarlo.updateMultipleInputs({
+			volatility: Math.min(0.8, Math.max(0.05, estimatedVolatility)),
+			drift: Math.min(0.3, Math.max(0, impliedReturn)),
+			years: periodYears,
+		});
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [historyData.highPrice, historyData.lowPrice, historyData.periodYears]);
+
 	return (
 		<div className="flex h-screen w-full flex-col bg-rf-bg font-body text-white selection:bg-rf-primary selection:text-white">
 			{/* 扫描线覆盖层 */}
@@ -67,18 +101,7 @@ export function LabPage() {
 						RISKFLOW 
 					</h1>
 				</div>
-				<div className="flex items-center gap-6">
-					<div className="flex items-center gap-4 font-mono text-[10px] leading-none text-gray-500">
-						<div className="flex items-center gap-2">
-							<span className="h-1.5 w-1.5 rounded-full bg-rf-accent" />
-							<span>LATENCY: 12ms</span>
-						</div>
-						<div className="flex items-center gap-2">
-							<span className="h-1.5 w-1.5 rounded-full bg-rf-primary" />
-							<span>SYS: READY</span>
-						</div>
-					</div>
-					<div className="h-4 w-px bg-white/10" />
+				<div className="flex items-center gap-4">
 					<div className="flex items-center gap-2">
 						<button
 							type="button"
@@ -178,7 +201,7 @@ export function LabPage() {
 				</aside>
 
 				{/* 中间可视化区域 */}
-				<main className="relative flex flex-1 flex-col overflow-hidden bg-rf-bg">
+				<main className="relative flex flex-1 flex-col overflow-hidden bg-rf-bg min-h-0">
 					{/* 3D 网格背景 */}
 					<div className="pointer-events-none absolute inset-0 overflow-hidden">
 						<div className="bg-grid-3d absolute inset-0 opacity-20" />
@@ -186,11 +209,31 @@ export function LabPage() {
 					</div>
 
 					{/* 内容区 */}
-					<div className="relative z-10 flex flex-1 flex-col">
-						{/* 3D 可视化区域 */}
-						<div className="relative flex-1">
+					<div className="relative z-10 flex flex-1 flex-col min-h-0 overflow-hidden">
+						{/* 收益分布可视化区域 */}
+						<div className="relative flex-1 flex flex-col gap-2 p-4 min-h-0 overflow-hidden">
 							{isMonteCarlo ? (
-								<MonteCarloScene layer={monteCarlo.renderLayer} />
+								<>
+									{/* 概率锥（价格置信区间）- 占 35% 高度 */}
+									<div className="h-[35%] min-h-0">
+										<ProbabilityCone
+											stepStats={monteCarlo.state.cloud.stepStats}
+											initialPrice={monteCarlo.input.initialPrice}
+											currentStep={monteCarlo.state.currentStep}
+											totalSteps={monteCarlo.input.steps}
+										/>
+									</div>
+									{/* 收益分布直方图 - 占 65% 高度 */}
+									<div className="h-[65%] min-h-0">
+										<ReturnDistribution
+											key={`${monteCarlo.input.seed}`}
+											terminalPrices={monteCarlo.terminalPrices}
+											initialPrice={monteCarlo.input.initialPrice}
+											paths={monteCarlo.input.paths}
+											visiblePaths={Math.ceil(monteCarlo.metrics.progress * monteCarlo.input.paths)}
+										/>
+									</div>
+								</>
 							) : (
 								<div className="flex h-full w-full items-center justify-center">
 									<p className="font-mono text-sm text-gray-500">
@@ -201,7 +244,7 @@ export function LabPage() {
 						</div>
 
 						{/* 底部控制栏 */}
-						<div className="z-20 flex items-center gap-4 border-t border-white/5 bg-rf-bg/60 px-4 py-2">
+						<div className="z-20 flex shrink-0 items-center gap-4 border-t border-white/5 bg-rf-bg/60 px-4 py-2">
 							{/* 进度条 + 步数 */}
 							<div className="flex flex-1 items-center gap-3">
 								<div className="relative h-0.5 flex-1 rounded-full bg-white/10">
@@ -217,8 +260,8 @@ export function LabPage() {
 
 							{/* 播放/暂停按钮（融合状态指示） */}
 							{monteCarlo.metrics.progress >= 1 ? (
-								<div className="flex h-7 w-20 items-center justify-center gap-2 rounded border border-green-500/50 bg-green-500/10 font-mono text-[10px] font-medium text-green-400">
-									<span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" />
+								<div className="flex h-7 w-20 items-center justify-center gap-2 rounded border border-rf-accent/50 bg-rf-accent/10 font-mono text-[10px] font-medium text-rf-accent">
+									<span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rf-accent" />
 									<span className="w-12 text-center">已完成</span>
 								</div>
 							) : (
@@ -242,13 +285,81 @@ export function LabPage() {
 				{/* 右侧参数面板 */}
 				{!isRightCollapsed && (
 				<aside className="glass-panel z-20 flex w-64 shrink-0 flex-col overflow-y-auto border-l border-white/10">
-					{/* PARAMETERS 区块 */}
-					<div className="border-b border-white/10 p-5">
-						<div className="mb-6 flex items-center justify-between">
-							<h2 className="font-display text-xs font-bold tracking-widest text-white">模拟参数</h2>
-							<span className="font-mono text-[10px] text-gray-600">[-]</span>
+					{/* 历史数据输入区块 */}
+					<div className="border-b border-white/10 p-4">
+						<div className="mb-3 flex items-center justify-between">
+							<h2 className="font-display text-xs font-bold tracking-widest text-white">历史数据估算</h2>
+							<span className="font-mono text-[8px] text-gray-600">Parkinson</span>
 						</div>
-						<div className="space-y-4">
+						<div className="space-y-3">
+							<div className="grid grid-cols-2 gap-2">
+								<div>
+									<label className="font-mono text-[9px] text-gray-500">历史最高价</label>
+									<div className="flex items-center">
+										<span className="font-mono text-[10px] text-gray-500">$</span>
+										<input
+											type="number"
+											min={1}
+											value={historyData.highPrice}
+											onChange={(e) => setHistoryData(prev => ({ ...prev, highPrice: Math.max(1, Number(e.target.value)) }))}
+											className="w-full border-b border-rf-primary/40 bg-transparent px-1 py-0.5 font-mono text-[11px] text-rf-text outline-none focus:border-rf-primary"
+										/>
+									</div>
+								</div>
+								<div>
+									<label className="font-mono text-[9px] text-gray-500">历史最低价</label>
+									<div className="flex items-center">
+										<span className="font-mono text-[10px] text-gray-500">$</span>
+										<input
+											type="number"
+											min={1}
+											value={historyData.lowPrice}
+											onChange={(e) => setHistoryData(prev => ({ ...prev, lowPrice: Math.max(1, Number(e.target.value)) }))}
+											className="w-full border-b border-rf-primary/40 bg-transparent px-1 py-0.5 font-mono text-[11px] text-rf-text outline-none focus:border-rf-primary"
+										/>
+									</div>
+								</div>
+							</div>
+							<div>
+								<label className="font-mono text-[9px] text-gray-500">数据周期（年）</label>
+								<input
+									type="number"
+									min={0.25}
+									max={10}
+									step={0.25}
+									value={historyData.periodYears}
+									onChange={(e) => setHistoryData(prev => ({ ...prev, periodYears: Math.max(0.25, Number(e.target.value)) }))}
+									className="w-full border-b border-white/30 bg-transparent px-1 py-0.5 font-mono text-[11px] text-white outline-none"
+								/>
+							</div>
+							<div className="rounded bg-rf-primary/10 border border-rf-primary/30 py-1.5 text-center font-mono text-[9px] text-rf-primary/70">
+								✓ 自动联动模拟参数
+							</div>
+							{historyData.highPrice > historyData.lowPrice && (
+								<div className="rounded bg-white/5 p-2 font-mono text-[9px]">
+									<div className="flex justify-between text-gray-400">
+										<span>估算波动率</span>
+										<span className="text-rf-accent">
+											{((1 / Math.sqrt(4 * Math.log(2))) * Math.log(historyData.highPrice / historyData.lowPrice) / Math.sqrt(historyData.periodYears) * 100).toFixed(1)}%
+										</span>
+									</div>
+									<div className="mt-1 flex justify-between text-gray-400">
+										<span>价格波动范围</span>
+										<span className="text-white">
+											{((historyData.highPrice - historyData.lowPrice) / historyData.lowPrice * 100).toFixed(0)}%
+										</span>
+									</div>
+								</div>
+							)}
+						</div>
+					</div>
+
+					{/* PARAMETERS 区块 */}
+					<div className="border-b border-white/10 p-4">
+						<div className="mb-4 flex items-center justify-between">
+							<h2 className="font-display text-xs font-bold tracking-widest text-white">模拟参数</h2>
+						</div>
+						<div className="space-y-3">
 							{/* 初始价格 - 可输入 */}
 							<div className="space-y-1">
 								<div className="flex items-center justify-between font-mono text-[10px] text-gray-400">
@@ -351,34 +462,38 @@ export function LabPage() {
 					{/* 风险指标区块 */}
 					<div className="p-5">
 						<div className="mb-4 flex items-center justify-between">
-							<h2 className="font-display text-xs font-bold tracking-widest text-white">风险指标</h2>
+							<h2 className="font-display text-xs font-bold tracking-widest text-rf-text">风险指标</h2>
 						</div>
 						<div className="space-y-3">
 							<div className="flex items-center justify-between font-mono text-[10px]">
-								<span className="text-gray-500">当前均价</span>
-								<span className="font-bold text-white">${monteCarlo.metrics.current.meanPrice.toFixed(2)}</span>
+								<span className="text-rf-text-secondary">当前均价</span>
+								<span className="font-semibold text-rf-text">${monteCarlo.metrics.current.meanPrice.toFixed(2)}</span>
 							</div>
 							<div className="flex items-center justify-between font-mono text-[10px]">
-								<span className="text-gray-500">5%/95% 分位</span>
-								<span className="text-white">
-									${monteCarlo.metrics.current.p05Price.toFixed(0)} / ${monteCarlo.metrics.current.p95Price.toFixed(0)}
+								<span className="text-rf-text-secondary">5%/95% 分位</span>
+								<span className="text-rf-text">
+									<span className="text-[#00D4AA]">${monteCarlo.metrics.current.p05Price.toFixed(0)}</span>
+									<span className="text-rf-text-muted"> / </span>
+									<span className="text-[#FF4757]">${monteCarlo.metrics.current.p95Price.toFixed(0)}</span>
 								</span>
 							</div>
 							<div className="flex items-center justify-between font-mono text-[10px]">
-								<span className="text-gray-500">预期收益</span>
-								<span className="text-rf-accent">{(monteCarlo.metrics.final.expectedReturn * 100).toFixed(1)}%</span>
+								<span className="text-rf-text-secondary">预期收益</span>
+								<span className={`font-semibold ${monteCarlo.metrics.final.expectedReturn >= 0 ? 'text-[#FF4757]' : 'text-[#00D4AA]'}`}>
+									{monteCarlo.metrics.final.expectedReturn > 0 ? '+' : ''}{(monteCarlo.metrics.final.expectedReturn * 100).toFixed(1)}%
+								</span>
 							</div>
 							<div className="flex items-center justify-between font-mono text-[10px]">
-								<span className="text-gray-500">最大损失 (VaR)</span>
-								<span className="font-bold text-red-400">{(monteCarlo.metrics.final.var95 * 100).toFixed(1)}%</span>
+								<span className="text-rf-text-secondary">最大损失 (VaR)</span>
+								<span className="font-semibold text-[#FF4757]">{(monteCarlo.metrics.final.var95 * 100).toFixed(1)}%</span>
 							</div>
 							<div className="flex items-center justify-between font-mono text-[10px]">
-								<span className="text-gray-500">极端损失 (CVaR)</span>
-								<span className="font-bold text-red-400">{(monteCarlo.metrics.final.expectedShortfall95 * 100).toFixed(1)}%</span>
+								<span className="text-rf-text-secondary">极端损失 (CVaR)</span>
+								<span className="font-semibold text-[#FF4757]">{(monteCarlo.metrics.final.expectedShortfall95 * 100).toFixed(1)}%</span>
 							</div>
 							<div className="flex items-center justify-between font-mono text-[10px]">
-								<span className="text-gray-500">亏损概率</span>
-								<span className="text-white">{(monteCarlo.metrics.final.lossProbability * 100).toFixed(1)}%</span>
+								<span className="text-rf-text-secondary">亏损概率</span>
+								<span className="text-rf-text">{(monteCarlo.metrics.final.lossProbability * 100).toFixed(1)}%</span>
 							</div>
 						</div>
 					</div>

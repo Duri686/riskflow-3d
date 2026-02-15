@@ -155,6 +155,19 @@ export function useMonteCarloSession() {
 		[restartWithInput],
 	);
 
+	const updateMultipleInputs = useCallback(
+		(updates: Partial<MonteCarloInput>) => {
+			restartWithInput(
+				{
+					...inputRef.current,
+					...updates,
+				},
+				true,
+			);
+		},
+		[restartWithInput],
+	);
+
 	const togglePlaying = useCallback(() => {
 		setIsPlaying((previous) => !previous);
 	}, []);
@@ -179,7 +192,9 @@ export function useMonteCarloSession() {
 		isPlaying,
 		renderLayer,
 		metrics,
+		terminalPrices: state.cloud.terminalPrices,
 		updateInput,
+		updateMultipleInputs,
 		togglePlaying,
 		resimulate,
 		resetDefaults,
