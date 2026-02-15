@@ -1,36 +1,34 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
 	ALGORITHM_CATALOG,
 	ALGORITHM_SHORTCUTS,
 	type AlgorithmId,
 	getAlgorithmMeta,
+	isAlgorithmId,
+	DEFAULT_ALGORITHM_ID,
 } from "../algorithms/registry";
 import { ReturnDistribution } from "../algorithms/monte-carlo/ReturnDistribution";
 import { ProbabilityCone } from "../algorithms/monte-carlo/ProbabilityCone";
 import { useMonteCarloSession } from "../algorithms/monte-carlo/useSession";
 import { RiskFlowLogo, MaterialIcon } from "../components/Logo";
-import { useLabStore } from "../store/useLabStore";
 
 export function LabPage() {
-	const {
-		globalUi,
-		markRecent,
-		navigateToLab,
-		navigateToHub,
-		setLeftPanelCollapsed,
-		setRightPanelCollapsed,
-	} = useLabStore();
-
-	const algorithmId: AlgorithmId = globalUi.currentAlgorithmId;
-	const isLeftCollapsed = globalUi.leftPanelCollapsed;
-	const isRightCollapsed = globalUi.rightPanelCollapsed;
+	const navigate = useNavigate();
+	const params = useParams();
+	const routeId = params.id as string | undefined;
+	const algorithmId: AlgorithmId = isAlgorithmId(routeId ?? "")
+		? (routeId as AlgorithmId)
+		: DEFAULT_ALGORITHM_ID;
+	const [isLeftCollapsed, setLeftPanelCollapsed] = useState(false);
+	const [isRightCollapsed, setRightPanelCollapsed] = useState(false);
+	const navigateToLab = (id: AlgorithmId) => navigate(`/lab/${id}`);
+	const navigateToHub = () => navigate("/");
 	const monteCarlo = useMonteCarloSession();
 	const currentMeta = getAlgorithmMeta(algorithmId);
 	const isMonteCarlo = algorithmId === "monte-carlo";
 
-	useEffect(() => {
-		markRecent(algorithmId);
-	}, [algorithmId, markRecent]);
+	// 移除全局最近算法记录：不再需要全局 store
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {

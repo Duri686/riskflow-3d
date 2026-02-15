@@ -1,23 +1,14 @@
-import { LabStoreProvider } from "./store/provider";
-import { useLabStore } from "./store/useLabStore";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { HubPage } from "./pages/HubPage";
 import { LabPage } from "./pages/LabPage";
 
-function AppContent() {
-	const { globalUi } = useLabStore();
-
-	if (globalUi.currentView === "hub") {
-		return <HubPage />;
-	}
-
-	return <LabPage key={globalUi.currentAlgorithmId} />;
-}
-
 function App() {
 	return (
-		<LabStoreProvider>
-			<AppContent />
-		</LabStoreProvider>
+		<Routes>
+			<Route path="/" element={<HubPage />} />
+			<Route path="/lab/:id" element={<LabPage />} />
+			<Route path="*" element={<Navigate to="/" replace />} />
+		</Routes>
 	);
 }
 

@@ -1,11 +1,11 @@
 import { ArrowRight } from "lucide-react";
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { ALGORITHM_SHORTCUTS, DEFAULT_ALGORITHM_ID } from "../algorithms/registry";
 import { RiskFlowLogo, MaterialIcon } from "../components/Logo";
-import { useLabStore } from "../store/useLabStore";
 
 export function HubPage() {
-	const { navigateToLab } = useLabStore();
+	const navigate = useNavigate();
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
@@ -13,11 +13,11 @@ export function HubPage() {
 			const targetAlgorithmId = ALGORITHM_SHORTCUTS[event.key];
 			if (!targetAlgorithmId) return;
 			event.preventDefault();
-			navigateToLab(targetAlgorithmId);
+			navigate(`/lab/${targetAlgorithmId}`);
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [navigateToLab]);
+	}, [navigate]);
 
 	return (
 		<div className="relative h-screen w-full overflow-hidden bg-rf-bg selection:bg-rf-primary selection:text-white">
@@ -79,7 +79,7 @@ export function HubPage() {
 
 					<button
 						type="button"
-						onClick={() => navigateToLab(DEFAULT_ALGORITHM_ID)}
+						onClick={() => navigate(`/lab/${DEFAULT_ALGORITHM_ID}`)}
 						className="rf-pill-hover glow-border group relative overflow-hidden border-2 border-rf-primary bg-transparent px-10 py-4 font-display text-lg font-bold uppercase tracking-widest text-white transition-all duration-300 hover:scale-105 hover:bg-rf-primary active:scale-95"
 					>
 						{/* 闪光效果 */}
