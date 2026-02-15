@@ -48,19 +48,19 @@ export function LabLayout({ children, sidebar, activeId, actions }: LabLayoutPro
                   disabled={isDisabled}
                   className={`group relative rounded-sm border px-2.5 py-1.5 text-left transition-all ${
                     isActive
-                      ? "border-rf-primary/50 bg-rf-primary/10"
+                      ? "border-rf-primary/60 bg-rf-primary/15"
                       : isDisabled
-                        ? "cursor-not-allowed border-transparent opacity-30"
-                        : "border-transparent hover:border-white/10 hover:bg-white/5"
+                        ? "cursor-not-allowed border-white/5 bg-white/2"
+                        : "border-white/5 hover:border-rf-primary/30 hover:bg-white/8"
                   }`}
                   title={algo.title}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-[9px] text-gray-600">
+                    <span className={`font-mono text-[9px] ${isDisabled ? "text-gray-700" : "text-gray-600"}`}>
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     <span
-                      className={`truncate font-display text-[11px] font-medium ${isActive ? "text-white" : "text-gray-500"}`}
+                      className={`truncate font-display text-[11px] font-medium ${isActive ? "text-white" : isDisabled ? "text-gray-600" : "text-gray-400 hover:text-white"}`}
                     >
                       {algo.title.toUpperCase()}
                     </span>

@@ -64,7 +64,7 @@ export function DataInputPanel({ onDataLoaded }: DataInputPanelProps) {
     setCloseSeriesText(text)
     if (!text.trim()) return
     const tokens = text
-      .split(/[\s,]+/)
+      .split(/[\s,，、；]+/)
       .map((t) => Number(t))
       .filter((n) => Number.isFinite(n) && n > 0)
     if (tokens.length >= 2) {

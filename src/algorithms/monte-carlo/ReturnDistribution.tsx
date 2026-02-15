@@ -145,8 +145,13 @@ export function ReturnDistribution({
   const chartWidth = width - padding.left - padding.right
   const chartHeight = height - padding.top - padding.bottom
 
-  const xMin = Math.min(Math.min(stats.p05, stats.cvar95) - 10, -50)
-  const xMax = Math.max(stats.p95 + 10, 50)
+  // 动态计算X轴范围 (至少 ±5% 范围，防止波动率为0时显示异常)
+  const dataMin = Math.min(stats.maxLoss, stats.cvar95, -5);
+  const dataMax = Math.max(stats.maxGain, stats.p95, 5);
+  const xPadding = (dataMax - dataMin) * 0.1; // 10% padding
+  const xMin = Math.floor(dataMin - xPadding);
+  const xMax = Math.ceil(dataMax + xPadding);
+  
   const xScale = (x: number) => padding.left + ((x - xMin) / (xMax - xMin)) * chartWidth
 
   const maxCount = Math.max(1, ...bins.map((b) => b.percentage))
@@ -175,6 +180,17 @@ export function ReturnDistribution({
     { x: p95X, label: 'p95' },
   ]
   const labelOffsets = resolveLabels(labelPositions)
+
+  // 动态生成 ticks (5个)
+  const generateTicks = (min: number, max: number) => {
+    const step = (max - min) / 4;
+    return [0, 1, 2, 3, 4].map(i => {
+       const val = min + i * step;
+       // Round to nearest integer or 1 decimal if range is small
+       return Math.abs(val) < 10 ? Number(val.toFixed(1)) : Math.round(val);
+    });
+  };
+  const ticks = generateTicks(xMin, xMax);
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -326,7 +342,7 @@ export function ReturnDistribution({
           stroke="#4B5563"
           strokeWidth={1}
         />
-        {[-40, -20, 0, 20, 40].map((tick) => (
+        {ticks.map((tick) => (
           <g key={tick}>
             <line
               x1={xScale(tick)}
