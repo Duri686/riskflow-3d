@@ -12,7 +12,7 @@ if (!rootElement) {
 
 // 在 GitHub Pages 上使用 HashRouter 以避免刷新 404；本地与自有服务器使用 BrowserRouter 提供无 # 的美观 URL
 const isGhPages = typeof window !== "undefined" && /github\.io$/.test(window.location.hostname);
-const Router: React.ComponentType<React.PropsWithChildren> = isGhPages ? (HashRouter as any) : (BrowserRouter as any);
+const Router = (isGhPages ? HashRouter : BrowserRouter) as React.FC<React.PropsWithChildren>;
 
 createRoot(rootElement).render(
 	<StrictMode>
