@@ -48,11 +48,11 @@ export function Surface({ session }: SurfaceProps) {
 		geometryRef.current.computeVertexNormals();
 	}, [surfaceData, yScale]);
 
-	// Marker Position
+	// Marker Position with slight lift
 	const markerPos = useMemo(() => {
 		return new THREE.Vector3(
 			scaleX(params.spot),
-			currentResult[activeMetric as keyof typeof currentResult] * yScale,
+			currentResult[activeMetric as keyof typeof currentResult] * yScale + 0.1, // Lift marker slightly more
 			scaleZ(params.time)
 		);
 	}, [params.spot, params.time, currentResult, activeMetric, yScale]);
@@ -67,7 +67,7 @@ export function Surface({ session }: SurfaceProps) {
 			const t = T_RANGE.min + i * tStep;
 			const res = calculateBS(params.strike, params.strike, t, params.volatility, params.rate, params.type); // S=K
 			const zVal = res[activeMetric as keyof typeof res] as number;
-			points.push(new THREE.Vector3(scaleX(params.strike), zVal * yScale + 0.05, scaleZ(t))); // Lift slightly
+			points.push(new THREE.Vector3(scaleX(params.strike), zVal * yScale + 0.08, scaleZ(t))); // Distinct lift
 		}
 		return points;
 	}, [params.strike, T_RANGE, params.volatility, params.rate, params.type, activeMetric, yScale]);
@@ -80,7 +80,7 @@ export function Surface({ session }: SurfaceProps) {
 			const t = T_RANGE.min + i * tStep;
 			const res = calculateBS(params.spot, params.strike, t, params.volatility, params.rate, params.type);
 			const zVal = res[activeMetric as keyof typeof res] as number;
-			points.push(new THREE.Vector3(scaleX(params.spot), zVal * yScale + 0.05, scaleZ(t)));
+			points.push(new THREE.Vector3(scaleX(params.spot), zVal * yScale + 0.08, scaleZ(t)));
 		}
 		return points;
 	}, [params.spot, params.strike, T_RANGE, params.volatility, params.rate, params.type, activeMetric, yScale]);
@@ -93,7 +93,7 @@ export function Surface({ session }: SurfaceProps) {
 			const s = S_RANGE.min + i * sStep;
 			const res = calculateBS(s, params.strike, params.time, params.volatility, params.rate, params.type);
 			const zVal = res[activeMetric as keyof typeof res] as number;
-			points.push(new THREE.Vector3(scaleX(s), zVal * yScale + 0.05, scaleZ(params.time)));
+			points.push(new THREE.Vector3(scaleX(s), zVal * yScale + 0.08, scaleZ(params.time)));
 		}
 		return points;
 	}, [params.time, params.strike, S_RANGE, params.volatility, params.rate, params.type, activeMetric, yScale]);
@@ -113,14 +113,26 @@ export function Surface({ session }: SurfaceProps) {
 					emissiveIntensity={0.2}
 					wireframe={false}
 					transparent
-					opacity={0.8}
+					opacity={0.9}
 					side={THREE.DoubleSide}
-					metalness={0.8}
-					roughness={0.2}
+					metalness={0.6}
+					roughness={0.4}
 				/>
 			</mesh>
 
-			{/* Wireframe Overlay for grid visibility */}
+			{/* Side Walls (Curtains) to create solid block effect */}
+			<group position={[0, -2, 0]} rotation={[0, 0, 0]}>
+				<SideWalls 
+					surfaceData={surfaceData} 
+					width={width} 
+					height={height} 
+					scaleX={scaleX} 
+					scaleZ={scaleZ} 
+					yScale={yScale} 
+				/>
+			</group>
+
+			{/* Wireframe Overlay - Subtle */}
 			<mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.99, 0]}>
 				<planeGeometry args={[10, 10, width - 1, height - 1]} />
 				<meshBasicMaterial color="#ffffff" wireframe transparent opacity={0.05} />
@@ -128,48 +140,13 @@ export function Surface({ session }: SurfaceProps) {
 
 			{/* Reference Lines Rendering */}
 			<group position={[0, -2, 0]} rotation={[0, 0, 0]}> 
-				{/* Note: Surface is rotated -PI/2 X. 
-				    The points calc uses (x, val, z) thinking X=Spot, Z=Time.
-					But geometry buffer maps Z attr to Y (up). 
-					Wait, my points calculation assumes X=Spot, Y=Value, Z=Time.
-					If I render Line in the same group as mesh, it inherits -PI/2 rotation?
-					No, let's put lines OUTSIDE the rotated mesh group to be safe, or counter-rotate.
-					Actually, the simpler way: 
-					Mesh logic: posAttr.setZ(i, pt.z * yScale) -> local Z is UP in PlaneGeometry before rotation.
-					After Mesh rotation X -90: Local Z becomes World Y. Local Y becomes World -Z.
-					Let's just use World Coordinates for lines.
-					World X = scaleX(spot).
-					World Y = val * yScale - 2 (since mesh group is at -2).
-					World Z = scaleZ(time).
-					
-					Let's re-verify my scaleZ mapping.
-					In mesh gen: 
-					points.push({x: s, y: t, z: val}) 
-					posAttr.setZ(i, pt.z * yScale) -> This puts Value on Local Z.
-					Plane is X-Y plane. 
-					Mesh rotated -90 deg X -> Local Z points to World Y.
-					So World Y = Value. Correct.
-					Local X is World X. Correct.
-					Local Y is World Z (actually World -Z because of rotation direction? Let's check).
-					Rotate X -90: (x, y, z) -> (x, -z, y).
-					So Local Y (Time in grid loop) maps to World -Z.
-					Wait, standard grid usually maps +Z to viewer.
-					Let's stick to the visual confirmation I had implicitly.
-					
-					My existing markerPos logic:
-					new THREE.Vector3(scaleX, val * yScale, scaleZ)
-					This seems to work based on previous code.
-					If I just render lines in parent group (no rotation), with same coord system as markerPos, it should work.
-					Yes.
-				*/}
-				
 				{/* ATM Line - Gold/Yellow */}
 				<Line points={atmLinePoints} color="#FBBF24" lineWidth={2} transparent opacity={0.6} dashed={true} dashScale={2} gapSize={1} />
 				
-				{/* Spot Profile Lines (Time Decay) - Cyan (Matches Marker Spot) */}
+				{/* Spot Profile Lines (Time Decay) - Cyan */}
 				<Line points={spotLinePoints} color="#2DD4BF" lineWidth={3} transparent opacity={0.8} />
 
-				{/* Time Profile Lines (Payoff) - Magenta/Pink (Matches Marker Time? Let's use Pink) */}
+				{/* Time Profile Lines (Payoff) - Magenta */}
 				<Line points={timeLinePoints} color="#EC4899" lineWidth={3} transparent opacity={0.8} />
 			</group>
 
@@ -183,19 +160,26 @@ export function Surface({ session }: SurfaceProps) {
 
 			{/* Current State Marker */}
 			<group position={[0, -2, 0]}>
-				{/* The Ball */}
+				{/* The Ball - Lifted logic applied in markerPos */}
 				<mesh position={markerPos}>
-					<sphereGeometry args={[0.15, 16, 16]} />
-					<meshBasicMaterial color="#ffffff" />
+					<sphereGeometry args={[0.2, 32, 32]} />
+					<meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.5} />
 				</mesh>
 
 				{/* Pulsing Aura */}
 				<mesh position={markerPos}>
-					<sphereGeometry args={[0.25, 16, 16]} />
-					<meshBasicMaterial color="#ffffff" transparent opacity={0.3} />
+					<sphereGeometry args={[0.35, 32, 32]} />
+					<meshBasicMaterial color="#ffffff" transparent opacity={0.2} depthWrite={false} />
 				</mesh>
 
-				{/* Projection Lines */}
+				{/* Projection Lines - Dropping to floor (-2 relative to world 0, but marker is relative to group at -2)
+					Wait, Group is at [0, -2, 0].
+					markerPos.y is calculated as value * yScale.
+					If surface is at 0 (local), marker is at 0.
+					We want projection line to go to local 0 (which is base of visualization).
+					Currently code says: vector(x, y, z) to vector(x, 0, z).
+					This is correct if 0 is the floor of the local group.
+				*/}
 				<line>
 					<bufferGeometry attach="geometry">
 						<float32BufferAttribute
@@ -212,23 +196,112 @@ export function Surface({ session }: SurfaceProps) {
 							]), 3]}
 						/>
 					</bufferGeometry>
-					<lineDashedMaterial attach="material" color="#ffffff" transparent opacity={0.5} dashSize={0.2} gapSize={0.1} />
+					<lineDashedMaterial attach="material" color="#ffffff" transparent opacity={0.3} dashSize={0.2} gapSize={0.1} />
 				</line>
 				
-				{/* Tooltip on the marker */}
-				<Html position={[markerPos.x, markerPos.y + 0.5, markerPos.z]} center>
-					<div className="pointer-events-none select-none flex flex-col items-center gap-1">
-						<div className="px-2 py-1 bg-rf-surface-solid/90 border border-white/10 rounded font-mono text-[10px] text-white whitespace-nowrap shadow-xl backdrop-blur-sm">
-							{activeMetric.toUpperCase()}: {currentResult[activeMetric as keyof typeof currentResult].toFixed(4)}
-						</div>
-						{/* Legend for lines */}
-						<div className="flex gap-2 text-[8px] bg-black/50 px-1 rounded">
-							<span className="text-rf-secondary">● Payoff</span>
-							<span className="text-rf-accent">● Decay</span>
-						</div>
+				{/* Tooltip on the marker - Simplified */}
+				<Html position={[markerPos.x, markerPos.y + 0.5, markerPos.z]} center zIndexRange={[100, 0]}>
+					<div className="pointer-events-none select-none px-3 py-1.5 bg-rf-surface-solid/90 border border-white/20 rounded-md font-mono text-xs text-rf-text-primary shadow-xl backdrop-blur-md">
+						<span className="font-bold text-rf-secondary">{activeMetric.toUpperCase()}</span>: <span className="text-white">{currentResult[activeMetric as keyof typeof currentResult].toFixed(4)}</span>
 					</div>
 				</Html>
 			</group>
 		</group>
+	);
+}
+
+// ─── Helper Component for Side Walls ───
+function SideWalls({ 
+	surfaceData, width, height, scaleX, scaleZ, yScale 
+}: { 
+	surfaceData: { x: number; y: number; z: number }[]; 
+	width: number; 
+	height: number; 
+	scaleX: (v: number) => number; 
+	scaleZ: (v: number) => number;
+	yScale: number;
+}) {
+	const geometry = useMemo(() => {
+		const geo = new THREE.BufferGeometry();
+		const vertices: number[] = [];
+
+		const addQuad = (p1: THREE.Vector3, p2: THREE.Vector3) => {
+			// p1, p2 are top points. p3, p4 are bottom points (y=0).
+			// We build 2 triangles: (p1, p3, p2) and (p2, p3, p4) wrong order?
+			// Counter-clockwise usually.
+			// Top-Left: p1, Top-Right: p2, Bottom-Left: p3(p1.x, 0, p1.z), Bottom-Right: p4(p2.x, 0, p2.z)
+			
+			const p3 = new THREE.Vector3(p1.x, 0, p1.z);
+			const p4 = new THREE.Vector3(p2.x, 0, p2.z);
+
+			// Triangle 1: p1 -> p3 -> p2
+			vertices.push(p1.x, p1.y, p1.z); // 0
+			vertices.push(p3.x, p3.y, p3.z); // 1
+			vertices.push(p2.x, p2.y, p2.z); // 2
+			
+			// Triangle 2: p2 -> p3 -> p4
+			vertices.push(p2.x, p2.y, p2.z); // 3 (same as 2)
+			vertices.push(p3.x, p3.y, p3.z); // 4 (same as 1)
+			vertices.push(p4.x, p4.y, p4.z); // 5
+
+			// No indices if we push vertices directly for separate triangles (easy for flat shading)
+			// Efficient way: indexed. But flat list is easier to debug. 
+			// Actually let's just push 6 vertices per segment.
+		};
+		
+		// 1. Bottom Edge (Low T, iterate S: 0 -> width-1)
+		for (let i = 0; i < width - 1; i++) {
+			const pt1 = surfaceData[i];
+			const pt2 = surfaceData[i + 1];
+			const v1 = new THREE.Vector3(scaleX(pt1.x), pt1.z * yScale, scaleZ(pt1.y));
+			const v2 = new THREE.Vector3(scaleX(pt2.x), pt2.z * yScale, scaleZ(pt2.y));
+			addQuad(v1, v2);
+		}
+
+		// 2. Top Edge (High T, iterate S: (height-1)*width -> end)
+		const offset = (height - 1) * width;
+		for (let i = 0; i < width - 1; i++) {
+			const pt1 = surfaceData[offset + i];
+			const pt2 = surfaceData[offset + i + 1];
+			// Order: v2 -> v1 to face outward? High T is "back".
+			const v1 = new THREE.Vector3(scaleX(pt1.x), pt1.z * yScale, scaleZ(pt1.y));
+			const v2 = new THREE.Vector3(scaleX(pt2.x), pt2.z * yScale, scaleZ(pt2.y));
+			addQuad(v2, v1); // Reverse for back face? Or rely on DoubleSide
+		}
+
+		// 3. Left Edge (Low S, iterate T: 0 -> height-1, stride width)
+		for (let j = 0; j < height - 1; j++) {
+			const pt1 = surfaceData[j * width];
+			const pt2 = surfaceData[(j + 1) * width];
+			const v1 = new THREE.Vector3(scaleX(pt1.x), pt1.z * yScale, scaleZ(pt1.y));
+			const v2 = new THREE.Vector3(scaleX(pt2.x), pt2.z * yScale, scaleZ(pt2.y));
+			addQuad(v2, v1); // Left side facing out?
+		}
+
+		// 4. Right Edge (High S, iterate T: width-1 -> stride width)
+		for (let j = 0; j < height - 1; j++) {
+			const pt1 = surfaceData[j * width + width - 1];
+			const pt2 = surfaceData[(j + 1) * width + width - 1];
+			const v1 = new THREE.Vector3(scaleX(pt1.x), pt1.z * yScale, scaleZ(pt1.y));
+			const v2 = new THREE.Vector3(scaleX(pt2.x), pt2.z * yScale, scaleZ(pt2.y));
+			addQuad(v1, v2);
+		}
+		
+		geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+		geo.computeVertexNormals();
+		return geo;
+	}, [surfaceData, width, height, scaleX, scaleZ, yScale]);
+
+	return (
+		<mesh geometry={geometry}>
+			<meshStandardMaterial 
+				color="#7C3AED" 
+				transparent 
+				opacity={0.4} 
+				side={THREE.DoubleSide} 
+				flatShading
+				roughness={0.8}
+			/>
+		</mesh>
 	);
 }
