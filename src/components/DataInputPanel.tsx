@@ -11,7 +11,7 @@ import {
 } from '../algorithms/shared/fetchKlines'
 
 interface DataInputPanelProps {
-  /** 数据加载后的回调（收盘价 + 估算参数） */
+  /** 数据加载后的回调（收盘价 + 估算参数 + 资产元数据） */
   onDataLoaded: (data: {
     closes: number[]
     currentPrice: number
@@ -19,6 +19,10 @@ interface DataInputPanelProps {
     mu: number
     dailyReturns: number[]
     count: number
+    /** Binance symbol（如 "BTCUSDT"） */
+    symbol: string
+    /** 用户选择的回溯天数 */
+    lookbackDays: number
   }) => void
 }
 
@@ -44,8 +48,8 @@ export function DataInputPanel({ onDataLoaded }: DataInputPanelProps) {
     if (closes.length < 2) return
     const { sigma, mu, dailyReturns } = calculateSeriesParams(closes)
     setDataStatus({ hasSeries: true, sigma, mu, count: closes.length })
-    onDataLoaded({ closes, currentPrice, sigma, mu, dailyReturns, count: closes.length })
-  }, [onDataLoaded])
+    onDataLoaded({ closes, currentPrice, sigma, mu, dailyReturns, count: closes.length, symbol, lookbackDays: fetchPeriod })
+  }, [onDataLoaded, symbol, fetchPeriod])
 
   const handleFetchKlines = useCallback(async () => {
     setIsFetching(true)

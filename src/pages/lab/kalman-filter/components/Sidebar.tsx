@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, Settings, ChevronDown, ChevronRight, Shield } from "lucide-react";
+import { Activity, Settings, ChevronDown, ChevronRight, Shield, Download } from "lucide-react";
 import { DataInputPanel } from "@/components/DataInputPanel";
 import {
   KALMAN_PRESETS,
@@ -7,6 +7,7 @@ import {
   type KalmanPreset,
 } from "@/algorithms/kalman-filter/engine";
 import type { useKalmanSession } from "@/algorithms/kalman-filter/useSession";
+import { buildRiskSnapshot, downloadSnapshot } from "@/algorithms/kalman-filter/snapshot";
 
 interface SidebarProps {
   session: ReturnType<typeof useKalmanSession>;
@@ -36,7 +37,10 @@ export function Sidebar({ session }: SidebarProps) {
     <>
       <DataInputPanel
         onDataLoaded={(data) => {
-          session.setClosesData(data.closes);
+          session.setClosesData(data.closes, {
+            symbol: data.symbol,
+            lookbackDays: data.lookbackDays,
+          });
         }}
       />
 
@@ -336,7 +340,25 @@ export function Sidebar({ session }: SidebarProps) {
                     active={result.riskGate.forceNeutral}
                   />
                 </div>
-              </div>
+            </div>
+
+              {/* 📥 导出按钮 */}
+              <button
+                type="button"
+                onClick={() => {
+                  const snapshot = buildRiskSnapshot(
+                    result,
+                    session.input,
+                    session.preset,
+                    session.assetMeta,
+                  );
+                  downloadSnapshot(snapshot);
+                }}
+                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded border border-white/15 bg-white/5 py-1.5 font-mono text-[9px] text-gray-400 transition-all hover:border-rf-accent/40 hover:bg-rf-accent/10 hover:text-rf-accent"
+              >
+                <Download className="h-3 w-3" />
+                下载风险快照 JSON
+              </button>
             </div>
           )}
         </div>

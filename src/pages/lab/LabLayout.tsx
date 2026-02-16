@@ -5,7 +5,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
 	ALGORITHM_CATALOG,
 	ALGORITHM_SHORTCUTS,
@@ -72,16 +72,18 @@ export function LabLayout() {
 
 	const [isRightCollapsed, setRightPanelCollapsed] = useState(false);
 
-	/* ─── Tab 切换：更新 state + replaceState 同步 URL ─── */
+	const navigate = useNavigate();
+
+	/* ─── Tab 切换：更新 state + 通过 React Router 同步 URL ─── */
 	const switchTab = useCallback((id: AlgorithmId) => {
 		setActiveId((prev) => {
 			if (prev === id) return prev;
 			setSidebar(null);
 			setActions(null);
-			window.history.replaceState(null, "", `/lab/${id}`);
 			return id;
 		});
-	}, []);
+		navigate(`/lab/${id}`, { replace: true });
+	}, [navigate]);
 
 	/* ─── 键盘快捷键 Cmd+1~4 ─── */
 	useEffect(() => {

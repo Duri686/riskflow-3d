@@ -8,11 +8,16 @@ import {
 	type RegimeThresholds,
 	runKalmanFilter,
 } from "./engine";
+import type { AssetMeta } from "./snapshot";
 
 export function useKalmanSession() {
 	const [input, setInput] = useState<KalmanFilterInput>(defaultKalmanInput);
 	const [preset, setPreset] = useState<KalmanPreset>("balanced");
 	const [dailyReturns, setDailyReturns] = useState<number[]>([]);
+	const [assetMeta, setAssetMeta] = useState<AssetMeta>({
+		symbol: "BTCUSDT",
+		lookbackDays: 365,
+	});
 
 	/** 滤波结果（输入或参数变化时自动重算） */
 	const result = useMemo<KalmanFilterResult>(() => {
@@ -79,21 +84,27 @@ export function useKalmanSession() {
 		setInput((prev) => ({ ...prev, regimeThresholds: thresholds }));
 	}, []);
 
-	/** 从收盘价序列设置日收益率 */
-	const setClosesData = useCallback((closes: number[]) => {
-		if (closes.length < 2) {
-			setDailyReturns([]);
-			return;
-		}
-		const returns: number[] = [];
-		for (let i = 1; i < closes.length; i++) {
-			const r = Math.log(closes[i] / closes[i - 1]);
-			if (Number.isFinite(r)) {
-				returns.push(r);
+	/** 从收盘价序列设置日收益率 + 资产元数据 */
+	const setClosesData = useCallback(
+		(closes: number[], meta?: { symbol: string; lookbackDays: number }) => {
+			if (meta) {
+				setAssetMeta(meta);
 			}
-		}
-		setDailyReturns(returns);
-	}, []);
+			if (closes.length < 2) {
+				setDailyReturns([]);
+				return;
+			}
+			const returns: number[] = [];
+			for (let i = 1; i < closes.length; i++) {
+				const r = Math.log(closes[i] / closes[i - 1]);
+				if (Number.isFinite(r)) {
+					returns.push(r);
+				}
+			}
+			setDailyReturns(returns);
+		},
+		[],
+	);
 
 	return useMemo(
 		() => ({
@@ -101,6 +112,7 @@ export function useKalmanSession() {
 			preset,
 			result,
 			dailyReturns,
+			assetMeta,
 			applyPreset,
 			updateInput,
 			setClosesData,
@@ -112,6 +124,7 @@ export function useKalmanSession() {
 			preset,
 			result,
 			dailyReturns,
+			assetMeta,
 			applyPreset,
 			updateInput,
 			setClosesData,
