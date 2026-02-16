@@ -1,15 +1,28 @@
 import { useState } from "react";
-import { Activity, Settings, ChevronDown, ChevronRight } from "lucide-react";
+import { Activity, Settings, ChevronDown, ChevronRight, Shield } from "lucide-react";
 import { DataInputPanel } from "@/components/DataInputPanel";
-import { KALMAN_PRESETS, type KalmanPreset } from "@/algorithms/kalman-filter/engine";
+import {
+  KALMAN_PRESETS,
+  DEFAULT_EWMA_SPAN,
+  type KalmanPreset,
+} from "@/algorithms/kalman-filter/engine";
 import type { useKalmanSession } from "@/algorithms/kalman-filter/useSession";
 
 interface SidebarProps {
   session: ReturnType<typeof useKalmanSession>;
 }
 
+// ── Regime 颜色映射 ──
+const REGIME_STYLE: Record<string, { color: string; label: string }> = {
+  low: { color: "#00D4AA", label: "低风险" },
+  medium: { color: "#FFB74D", label: "中等风险" },
+  high: { color: "#FF4757", label: "高风险" },
+};
+
 export function Sidebar({ session }: SidebarProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const { result } = session;
+  const hasData = result.steps.length > 0;
 
   return (
     <>
@@ -56,7 +69,7 @@ export function Sidebar({ session }: SidebarProps) {
             </div>
           </div>
 
-          {/* 高级 Q/R 滑块 */}
+          {/* 高级设置 */}
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
@@ -72,6 +85,7 @@ export function Sidebar({ session }: SidebarProps) {
           </button>
           {showAdvanced && (
             <div className="space-y-2 rounded border border-white/10 bg-white/5 p-2">
+              {/* Q 滑块 */}
               <div className="space-y-1">
                 <div className="flex justify-between font-mono text-[9px] text-gray-500">
                   <span>Q 状态变化速度</span>
@@ -94,6 +108,7 @@ export function Sidebar({ session }: SidebarProps) {
                   className="w-full"
                 />
               </div>
+              {/* R 滑块 */}
               <div className="space-y-1">
                 <div className="flex justify-between font-mono text-[9px] text-gray-500">
                   <span>R 观测噪声程度</span>
@@ -116,40 +131,151 @@ export function Sidebar({ session }: SidebarProps) {
                   className="w-full"
                 />
               </div>
+              {/* EWMA span 滑块 */}
+              <div className="space-y-1">
+                <div className="flex justify-between font-mono text-[9px] text-gray-500">
+                  <span>EWMA span (日)</span>
+                  <span className="text-rf-accent">
+                    {session.input.ewmaSpan ?? DEFAULT_EWMA_SPAN}d
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={30}
+                  step={1}
+                  value={session.input.ewmaSpan ?? DEFAULT_EWMA_SPAN}
+                  onChange={(e) =>
+                    session.setEwmaSpan(Number(e.target.value))
+                  }
+                  className="w-full"
+                />
+              </div>
             </div>
           )}
 
-          {/* 波动率洞察 */}
-          {session.result.steps.length > 0 && (
-            <div className="space-y-2 rounded border border-rf-accent/30 bg-rf-accent/5 p-2.5">
+          {/* ── 风控面板 ── */}
+          {hasData && (
+            <div className="space-y-2 rounded border border-white/10 bg-white/5 p-2.5">
+              <div className="flex items-center gap-1.5 font-mono text-[10px] text-gray-400">
+                <Shield className="h-3 w-3" />
+                风险状态
+              </div>
+
+              {/* Regime 指示器 */}
+              <div
+                className="flex items-center gap-2 rounded px-2 py-1.5"
+                style={{
+                  backgroundColor: `${REGIME_STYLE[result.regime].color}10`,
+                  border: `1px solid ${REGIME_STYLE[result.regime].color}30`,
+                }}
+              >
+                <div
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: REGIME_STYLE[result.regime].color }}
+                />
+                <span
+                  className="font-mono text-[11px] font-bold"
+                  style={{ color: REGIME_STYLE[result.regime].color }}
+                >
+                  {REGIME_STYLE[result.regime].label}
+                </span>
+              </div>
+
+              {/* Kalman vs EWMA */}
               <div className="flex items-center justify-between font-mono text-[10px]">
-                <span className="text-gray-400">当前波动率</span>
+                <span className="text-gray-400">Kalman σ</span>
                 <span className="font-semibold text-[#00D4AA]">
-                  σ {(session.result.currentVol * 100).toFixed(1)}%
+                  {(result.currentVol * 100).toFixed(1)}%
                 </span>
               </div>
               <div className="flex items-center justify-between font-mono text-[10px]">
-                <span className="text-gray-400">最高波动率</span>
-                <span className="text-[#FF4757]">
-                  σ {(session.result.maxVol * 100).toFixed(1)}%
+                <span className="text-gray-400">EWMA σ</span>
+                <span className="font-semibold text-[#FFB74D]">
+                  {(result.ewma.currentVol * 100).toFixed(1)}%
                 </span>
               </div>
+
+              {/* Gain 诊断 */}
               <div className="flex items-center justify-between font-mono text-[10px]">
-                <span className="text-gray-400">最低波动率</span>
-                <span className="text-gray-300">
-                  σ {(session.result.minVol * 100).toFixed(1)}%
-                </span>
-              </div>
-              <div className="flex items-center justify-between font-mono text-[10px]">
-                <span className="text-gray-400">Kalman Gain</span>
+                <span className="text-gray-400">Gain</span>
                 <span className="text-white">
-                  {session.result.finalGain.toFixed(3)}
+                  {result.finalGain.toFixed(3)}
+                  <span
+                    className="ml-1"
+                    style={{
+                      color: result.gainDiagnostic.isLagging ? "#FF4757" : "#6B7280",
+                      fontSize: "8px",
+                    }}
+                  >
+                    {result.gainDiagnostic.responsiveness === "fast"
+                      ? "敏捷"
+                      : result.gainDiagnostic.responsiveness === "moderate"
+                        ? "适中"
+                        : "迟钝 ⚠️"}
+                  </span>
                 </span>
+              </div>
+
+              {/* 风控闸门 */}
+              <div className="mt-1 border-t border-white/10 pt-1.5">
+                <div className="font-mono text-[9px] text-gray-500 mb-1">
+                  风控建议
+                </div>
+                <div className="flex items-center justify-between font-mono text-[9px]">
+                  <span className="text-gray-500">杠杆</span>
+                  <span className="text-gray-300">
+                    ≤ {result.riskGate.suggestedLeverage.toFixed(1)}x
+                  </span>
+                </div>
+                <div className="flex items-center justify-between font-mono text-[9px]">
+                  <span className="text-gray-500">止损</span>
+                  <span className="text-gray-300">
+                    ±{(result.riskGate.suggestedStopWidth * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <div className="mt-1.5 font-mono text-[8px] text-gray-600 mb-1">
+                  策略许可（由 Regime 驱动）
+                </div>
+                <div className="flex flex-col gap-1">
+                  <StrategyChip
+                    label="趋势跟踪"
+                    condition="σ < 40%"
+                    active={result.riskGate.allowTrend}
+                  />
+                  <StrategyChip
+                    label="均值回归"
+                    condition="40–80%"
+                    active={result.riskGate.allowMeanRevert}
+                  />
+                  <StrategyChip
+                    label="强制中性"
+                    condition="σ > 80%"
+                    active={result.riskGate.forceNeutral}
+                  />
+                </div>
               </div>
             </div>
           )}
         </div>
       </div>
     </>
+  );
+}
+
+/** 策略标签 — 显示激活条件 */
+function StrategyChip({ label, condition, active }: { label: string; condition: string; active: boolean }) {
+  return (
+    <span
+      className="flex items-center justify-between rounded px-1.5 py-0.5 font-mono text-[9px]"
+      style={{
+        backgroundColor: active ? "rgba(0, 212, 170, 0.12)" : "rgba(107, 114, 128, 0.05)",
+        color: active ? "#00D4AA" : "#4B5563",
+        border: `1px solid ${active ? "rgba(0, 212, 170, 0.3)" : "rgba(107, 114, 128, 0.15)"}`,
+      }}
+    >
+      <span>{label}</span>
+      <span style={{ fontSize: "7px", opacity: 0.7 }}>{condition}</span>
+    </span>
   );
 }

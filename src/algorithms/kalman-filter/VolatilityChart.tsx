@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { KalmanFilterResult } from "./engine";
+import type { KalmanFilterResult, VolRegime } from "./engine";
 import { TRADING_DAYS_PER_YEAR } from "../shared/constants";
 
 interface VolatilityChartProps {
@@ -7,8 +7,15 @@ interface VolatilityChartProps {
 	dailyReturns: number[];
 }
 
-// ── 布局常量 ──
-const MARGIN = { top: 40, right: 180, bottom: 50, left: 60 };
+// ── 布局常量（去掉右侧面板后，右边距大幅缩小） ──
+const MARGIN = { top: 40, right: 30, bottom: 50, left: 60 };
+
+// ── Regime 颜色映射 ──
+const REGIME_COLORS: Record<VolRegime, { bg: string }> = {
+	low: { bg: "rgba(0, 212, 170, 0.06)" },
+	medium: { bg: "rgba(255, 183, 77, 0.06)" },
+	high: { bg: "rgba(255, 71, 87, 0.06)" },
+};
 
 export function VolatilityChart({
 	result,
@@ -32,7 +39,7 @@ export function VolatilityChart({
 		return () => ro.disconnect();
 	}, []);
 
-	const { steps } = result;
+	const { steps, regimeHistory, ewma } = result;
 	const hasData = steps.length >= 2;
 
 	const chart = useMemo(() => {
@@ -44,8 +51,11 @@ export function VolatilityChart({
 		// 观测值：|r_t| 的年化近似 = |r_t| × √TRADING_DAYS_PER_YEAR
 		const observedVols = dailyReturns.map((r) => Math.abs(r) * Math.sqrt(TRADING_DAYS_PER_YEAR));
 
-		// 估计值
+		// Kalman 估计值
 		const estimatedVols = steps.map((s) => s.annualizedVol);
+
+		// EWMA 值
+		const ewmaVols = ewma.values;
 
 		// 置信带上下界
 		const upperBand = steps.map((s) =>
@@ -56,9 +66,9 @@ export function VolatilityChart({
 		);
 
 		// Y 轴范围
-		const allVals = [...observedVols, ...estimatedVols, ...upperBand];
+		const allVals = [...observedVols, ...estimatedVols, ...upperBand, ...ewmaVols];
 		const maxDataVal = Math.max(...allVals);
-		const yMax = Math.max(maxDataVal * 1.1, 0.2); // 至少 20%，留出 10% 边距
+		const yMax = Math.max(maxDataVal * 1.1, 0.2);
 		const yMin = 0;
 
 		// 坐标映射
@@ -81,6 +91,14 @@ export function VolatilityChart({
 			)
 			.join(" ");
 
+		// EWMA 路径
+		const ewmaPath = ewmaVols
+			.map(
+				(v, i) =>
+					`${i === 0 ? "M" : "L"}${xScale(i).toFixed(1)},${yScale(v).toFixed(1)}`,
+			)
+			.join(" ");
+
 		// 置信带多边形
 		const bandPath = [
 			...upperBand.map(
@@ -94,7 +112,28 @@ export function VolatilityChart({
 			"Z",
 		].join(" ");
 
-		// Y 轴刻度 (动态计算 nice step)
+		// Regime 色带区间（合并连续相同 regime 的段）
+		const regimeBands: { start: number; end: number; regime: VolRegime }[] = [];
+		if (regimeHistory.length > 0) {
+			let currentRegime = regimeHistory[0];
+			let segStart = 0;
+			for (let i = 1; i < regimeHistory.length; i++) {
+				if (regimeHistory[i] !== currentRegime) {
+					regimeBands.push({ start: segStart, end: i - 1, regime: currentRegime });
+					currentRegime = regimeHistory[i];
+					segStart = i;
+				}
+			}
+			regimeBands.push({ start: segStart, end: regimeHistory.length - 1, regime: currentRegime });
+		}
+
+		// Regime 阈值线位置
+		const thresholds = result.riskGate ? [
+			{ val: 0.4, label: '40% 低↔中' },
+			{ val: 0.8, label: '80% 中↔高' },
+		].filter(t => t.val < yMax) : [];
+
+		// Y 轴刻度
 		const yTicks: number[] = [];
 		const roughStep = yMax / 6;
 		const exponent = Math.floor(Math.log10(roughStep));
@@ -111,10 +150,10 @@ export function VolatilityChart({
 			yTicks.push(Number(tick.toFixed(10)));
 		}
 
-		// X 轴刻度（每 60 天一个）
+		// X 轴刻度
 		const xTicks: number[] = [];
-		const xStep = Math.max(30, Math.floor(steps.length / 6));
-		for (let t = 0; t < steps.length; t += xStep) {
+		const xTickStep = Math.max(30, Math.floor(steps.length / 6));
+		for (let t = 0; t < steps.length; t += xTickStep) {
 			xTicks.push(t);
 		}
 		if (xTicks[xTicks.length - 1] !== steps.length - 1) {
@@ -124,7 +163,10 @@ export function VolatilityChart({
 		return {
 			observedPath,
 			estimatedPath,
+			ewmaPath,
 			bandPath,
+			regimeBands,
+			thresholds,
 			xScale,
 			yScale,
 			yTicks,
@@ -133,7 +175,7 @@ export function VolatilityChart({
 			W,
 			H,
 		};
-	}, [hasData, steps, dailyReturns, size]);
+	}, [hasData, steps, dailyReturns, ewma, regimeHistory, result.riskGate, size]);
 
 	if (!hasData) {
 		return (
@@ -157,8 +199,24 @@ export function VolatilityChart({
 				height={size.height}
 				className="select-none"
 				role="img"
-				aria-label="Volatility Chart"
+				aria-label="Volatility Risk Dashboard"
 			>
+				{/* Regime 背景色带 */}
+				{chart.regimeBands.map((band) => {
+					const x1 = chart.xScale(band.start);
+					const x2 = chart.xScale(band.end);
+					return (
+						<rect
+							key={`regime-${band.start}`}
+							x={x1}
+							y={MARGIN.top}
+							width={Math.max(1, x2 - x1)}
+							height={chart.H}
+							fill={REGIME_COLORS[band.regime].bg}
+						/>
+					);
+				})}
+
 				{/* 网格背景 */}
 				{chart.yTicks.map((v) => (
 					<line
@@ -172,6 +230,33 @@ export function VolatilityChart({
 					/>
 				))}
 
+				{/* Regime 阈值参考线 */}
+				{chart.thresholds.map((t) => (
+					<g key={`thresh-${t.val}`}>
+						<line
+							x1={MARGIN.left}
+							y1={chart.yScale(t.val)}
+							x2={MARGIN.left + chart.W}
+							y2={chart.yScale(t.val)}
+							stroke={t.val === 0.4 ? "#FFB74D" : "#FF4757"}
+							strokeWidth={1}
+							strokeDasharray="6,4"
+							strokeOpacity={0.5}
+						/>
+						<text
+							x={MARGIN.left + chart.W - 4}
+							y={chart.yScale(t.val) - 4}
+							fill={t.val === 0.4 ? "#FFB74D" : "#FF4757"}
+							fontSize={8}
+							fontFamily="monospace"
+							textAnchor="end"
+							opacity={0.7}
+						>
+							{t.label}
+						</text>
+					</g>
+				))}
+
 				{/* 置信带 */}
 				<path d={chart.bandPath} fill="#00D4AA" fillOpacity={0.08} />
 
@@ -182,6 +267,16 @@ export function VolatilityChart({
 					stroke="#6B7280"
 					strokeWidth={0.8}
 					strokeOpacity={0.4}
+				/>
+
+				{/* EWMA 对比线 */}
+				<path
+					d={chart.ewmaPath}
+					fill="none"
+					stroke="#FFB74D"
+					strokeWidth={1.5}
+					strokeDasharray="4,3"
+					strokeOpacity={0.8}
 				/>
 
 				{/* 滤波估计折线 */}
@@ -281,54 +376,32 @@ export function VolatilityChart({
 						strokeWidth={2}
 					/>
 					<text x={25} y={19} fill="#00D4AA" fontSize={9}>
-						滤波估计 σ̂
+						Kalman σ̂
+					</text>
+
+					<line
+						x1={0}
+						y1={32}
+						x2={20}
+						y2={32}
+						stroke="#FFB74D"
+						strokeWidth={1.5}
+						strokeDasharray="4,3"
+					/>
+					<text x={25} y={35} fill="#FFB74D" fontSize={9}>
+						EWMA 20d
 					</text>
 
 					<rect
 						x={0}
-						y={28}
+						y={44}
 						width={20}
 						height={8}
 						fill="#00D4AA"
 						fillOpacity={0.15}
 					/>
-					<text x={25} y={35} fill="#6B7280" fontSize={9}>
+					<text x={25} y={51} fill="#6B7280" fontSize={9}>
 						置信区间
-					</text>
-				</g>
-
-				{/* 右侧决策面板 */}
-				<g
-					transform={`translate(${size.width - MARGIN.right + 20}, ${MARGIN.top})`}
-				>
-					<text x={0} y={0} fill="#E5E7EB" fontSize={14} fontWeight="700">
-						波动率洞察
-					</text>
-
-					{/* 当前波动率 */}
-					<text x={0} y={32} fill="#00D4AA" fontSize={22} fontWeight="700">
-						σ {(result.currentVol * 100).toFixed(1)}%
-					</text>
-
-					{/* 最高 */}
-					<text x={0} y={64} fill="#FF4757" fontSize={12} fontWeight="600">
-						最高 {(result.maxVol * 100).toFixed(1)}%
-					</text>
-
-					{/* 最低 */}
-					<text x={0} y={88} fill="#6B7280" fontSize={12} fontWeight="600">
-						最低 {(result.minVol * 100).toFixed(1)}%
-					</text>
-
-					{/* Kalman Gain */}
-					<text x={0} y={112} fill="#E5E7EB" fontSize={12} fontWeight="600">
-						Gain {result.finalGain.toFixed(3)}
-					</text>
-
-					<rect x={0} y={128} width={100} height={1} fill="#374151" />
-
-					<text x={0} y={148} fill="#6B7280" fontSize={9}>
-						数据点: {result.steps.length}
 					</text>
 				</g>
 			</svg>
