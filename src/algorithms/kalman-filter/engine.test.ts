@@ -23,7 +23,7 @@ import {
   type KalmanFilterInput,
   type KalmanFilterResult,
 } from './engine'
-import { TRADING_DAYS_PER_YEAR } from '../monte-carlo/constants'
+import { TRADING_DAYS_PER_YEAR } from '../shared/constants'
 
 // ─── 辅助函数 ────────────────────────────────────────────────
 

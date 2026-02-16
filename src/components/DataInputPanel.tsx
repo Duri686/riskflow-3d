@@ -8,7 +8,7 @@ import {
   calculateSeriesParams,
   SYMBOL_OPTIONS,
   PERIOD_OPTIONS,
-} from '../algorithms/monte-carlo/fetchKlines'
+} from '../algorithms/shared/fetchKlines'
 
 interface DataInputPanelProps {
   /** 数据加载后的回调（收盘价 + 估算参数） */

@@ -12,7 +12,7 @@
  *   R    = 观测噪声，控制单日收益率平方有多不靠谱
  */
 
-import { TRADING_DAYS_PER_YEAR } from '../monte-carlo/constants'
+import { TRADING_DAYS_PER_YEAR } from '../shared/constants'
 
 // ── 类型定义 ──
 

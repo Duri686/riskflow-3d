@@ -5,7 +5,7 @@ import { LabLayout } from "./LabLayout";
 import { MaterialIcon } from "@/components/Logo";
 import { Sidebar } from "./monte-carlo/components/Sidebar";
 import { Footer } from "./monte-carlo/components/Footer";
-import { TRADING_DAYS_PER_YEAR } from "@/algorithms/monte-carlo/constants";
+import { TRADING_DAYS_PER_YEAR } from "@/algorithms/shared/constants";
 
 export function MonteCarloWorkspace() {
   const monteCarlo = useMonteCarloSession();

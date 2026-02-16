@@ -62,7 +62,7 @@ export interface MonteCarloMetricsPanel {
   elapsedYears: number
 }
 
-import { MIN_YEARS } from './constants'
+import { MIN_YEARS } from '../shared/constants'
 
 export const defaultMonteCarloInput: MonteCarloInput = {
   paths: 320,

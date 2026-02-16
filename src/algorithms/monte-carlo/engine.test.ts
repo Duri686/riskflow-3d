@@ -21,7 +21,7 @@ import {
   sanitizeInput,
 } from './engine'
 import type { MonteCarloInput } from './engine'
-import { TRADING_DAYS_PER_YEAR } from './constants'
+import { TRADING_DAYS_PER_YEAR } from '../shared/constants'
 
 // ─── 测试辅助函数 ───────────────────────────────────────────
 

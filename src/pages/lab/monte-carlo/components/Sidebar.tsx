@@ -4,7 +4,7 @@ import { DataInputPanel } from "@/components/DataInputPanel";
 import { RiskCard } from "./RiskCard";
 import type { useMonteCarloSession } from "@/algorithms/monte-carlo/useSession";
 import type { MonteCarloInput } from "@/algorithms/monte-carlo/engine";
-import { TRADING_DAYS_PER_YEAR } from "@/algorithms/monte-carlo/constants";
+import { TRADING_DAYS_PER_YEAR } from "@/algorithms/shared/constants";
 
 interface SidebarProps {
   session: ReturnType<typeof useMonteCarloSession>;

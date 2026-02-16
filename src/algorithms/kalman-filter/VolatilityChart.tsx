@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KalmanFilterResult } from "./engine";
-import { TRADING_DAYS_PER_YEAR } from "../monte-carlo/constants";
+import { TRADING_DAYS_PER_YEAR } from "../shared/constants";
 
 interface VolatilityChartProps {
 	result: KalmanFilterResult;
