@@ -18,7 +18,7 @@ export interface AlgorithmMeta {
 export const ALGORITHM_CATALOG: AlgorithmMeta[] = [
 	{
 		id: "monte-carlo",
-		title: "蒙特卡洛模拟",
+		title: "Monte Carlo",
 		subtitle: "路径扩散与尾部风险",
 		description: "观察数千条价格路径如何扩散，直观感受 VaR 与尾部风险的形成过程。",
 		status: "ready",
@@ -42,7 +42,7 @@ export const ALGORITHM_CATALOG: AlgorithmMeta[] = [
 	},
 	{
 		id: "kalman-filter",
-		title: "卡尔曼滤波",
+		title: "Kalman Filter",
 		subtitle: "波动率状态估计",
 		description: "将波动率视为隐藏状态，从含噪的日收益率中实时估计真实的波动率轨迹。",
 		status: "ready",
