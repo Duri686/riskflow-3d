@@ -19,6 +19,14 @@ const REGIME_STYLE: Record<string, { color: string; label: string }> = {
   high: { color: "#FF4757", label: "高风险" },
 };
 
+// ── Phase 颜色映射（四象限） ──
+const PHASE_STYLE: Record<string, { color: string; icon: string }> = {
+  rising: { color: "#FF4757", icon: "⬆️" },
+  falling: { color: "#00D4AA", icon: "⬇️" },
+  shock: { color: "#FFB74D", icon: "⚡" },
+  stable: { color: "#6B7280", icon: "◆" },
+};
+
 export function Sidebar({ session }: SidebarProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const { result } = session;
@@ -217,6 +225,62 @@ export function Sidebar({ session }: SidebarProps) {
                 </span>
               </div>
 
+              {/* ── 风险动量面板（v3 新增）── */}
+              <div className="mt-1 border-t border-white/10 pt-1.5 space-y-1.5">
+                <div className="font-mono text-[9px] text-gray-500 mb-1">
+                  风险动量
+                </div>
+                {/* Phase 指示器 */}
+                <div
+                  className="flex items-center gap-2 rounded px-2 py-1"
+                  style={{
+                    backgroundColor: `${PHASE_STYLE[result.momentum.phase].color}10`,
+                    border: `1px solid ${PHASE_STYLE[result.momentum.phase].color}30`,
+                  }}
+                >
+                  <span style={{ fontSize: "12px" }}>
+                    {PHASE_STYLE[result.momentum.phase].icon}
+                  </span>
+                  <span
+                    className="font-mono text-[10px] font-bold"
+                    style={{ color: PHASE_STYLE[result.momentum.phase].color }}
+                  >
+                    {result.momentum.phaseLabel}
+                  </span>
+                </div>
+                {/* Kalman Δ */}
+                <div className="flex items-center justify-between font-mono text-[9px]">
+                  <span className="text-gray-500">Kalman Δ</span>
+                  <span style={{
+                    color: result.momentum.kalmanDelta > 0.02
+                      ? "#FF4757"
+                      : result.momentum.kalmanDelta < -0.02
+                        ? "#00D4AA"
+                        : "#6B7280",
+                  }}>
+                    {result.momentum.kalmanDelta > 0 ? "+" : ""}
+                    {(result.momentum.kalmanDelta * 100).toFixed(1)}%
+                    {result.momentum.kalmanDelta > 0.02 ? " ↑" : result.momentum.kalmanDelta < -0.02 ? " ↓" : " →"}
+                  </span>
+                </div>
+                {/* Convergence Ratio */}
+                <div className="flex items-center justify-between font-mono text-[9px]">
+                  <span className="text-gray-500">收敛比</span>
+                  <span style={{
+                    color: result.momentum.convergenceRatio > 1.5
+                      ? "#FF4757"
+                      : result.momentum.convergenceRatio < 0.9
+                        ? "#00D4AA"
+                        : "#FFB74D",
+                  }}>
+                    {result.momentum.convergenceRatio.toFixed(2)}x
+                    <span className="ml-1" style={{ fontSize: "7px", opacity: 0.7 }}>
+                      {result.momentum.convergenceRatio > 1.2 ? "发散" : result.momentum.convergenceRatio < 0.9 ? "收敛" : "均衡"}
+                    </span>
+                  </span>
+                </div>
+              </div>
+
               {/* 风控闸门 */}
               <div className="mt-1 border-t border-white/10 pt-1.5">
                 <div className="font-mono text-[9px] text-gray-500 mb-1">
@@ -226,6 +290,11 @@ export function Sidebar({ session }: SidebarProps) {
                   <span className="text-gray-500">杠杆</span>
                   <span className="text-gray-300">
                     ≤ {result.riskGate.suggestedLeverage.toFixed(1)}x
+                    {result.momentum.phase === "rising" && (
+                      <span className="ml-1 text-[7px]" style={{ color: "#FF4757" }}>
+                        ×0.7
+                      </span>
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center justify-between font-mono text-[9px]">
@@ -235,8 +304,21 @@ export function Sidebar({ session }: SidebarProps) {
                   </span>
                 </div>
                 <div className="mt-1.5 font-mono text-[8px] text-gray-600 mb-1">
-                  策略许可（由 Regime 驱动）
+                  策略许可（Regime × Momentum 驱动）
                 </div>
+                {/* Shock 覆盖提示 */}
+                {result.momentum.phase === "shock" && (
+                  <div
+                    className="mb-1 rounded px-1.5 py-0.5 font-mono text-[8px]"
+                    style={{
+                      backgroundColor: "rgba(255, 183, 77, 0.1)",
+                      border: "1px solid rgba(255, 183, 77, 0.3)",
+                      color: "#FFB74D",
+                    }}
+                  >
+                    ⚡ 余震期 · 全部策略强制中性
+                  </div>
+                )}
                 <div className="flex flex-col gap-1">
                   <StrategyChip
                     label="趋势跟踪"

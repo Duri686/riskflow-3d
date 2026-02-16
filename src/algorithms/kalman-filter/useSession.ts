@@ -17,7 +17,13 @@ export function useKalmanSession() {
 	/** 滤波结果（输入或参数变化时自动重算） */
 	const result = useMemo<KalmanFilterResult>(() => {
 		if (dailyReturns.length < 2) {
-			return {
+			const emptyMomentum = {
+					kalmanDelta: 0,
+					convergenceRatio: 1,
+					phase: "stable" as const,
+					phaseLabel: "结构稳定",
+				};
+				return {
 				steps: [],
 				currentVol: 0,
 				maxVol: 0,
@@ -27,6 +33,7 @@ export function useKalmanSession() {
 				regimeHistory: [],
 				ewma: { values: [], currentVol: 0 },
 				gainDiagnostic: { isLagging: false, responsiveness: "moderate" as const },
+				momentum: emptyMomentum,
 				riskGate: {
 					regime: "low" as const,
 					suggestedLeverage: 3,
@@ -34,6 +41,7 @@ export function useKalmanSession() {
 					allowTrend: true,
 					allowMeanRevert: false,
 					forceNeutral: false,
+					momentum: emptyMomentum,
 				},
 			};
 		}

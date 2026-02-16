@@ -17,6 +17,14 @@ const REGIME_COLORS: Record<VolRegime, { bg: string }> = {
 	high: { bg: "rgba(255, 71, 87, 0.06)" },
 };
 
+// ── Phase 颜色映射 ──
+const PHASE_COLORS: Record<string, string> = {
+	rising: "#FF4757",
+	falling: "#00D4AA",
+	shock: "#FFB74D",
+	stable: "#6B7280",
+};
+
 export function VolatilityChart({
 	result,
 	dailyReturns,
@@ -41,6 +49,7 @@ export function VolatilityChart({
 
 	const { steps, regimeHistory, ewma } = result;
 	const hasData = steps.length >= 2;
+	const phaseColor = PHASE_COLORS[result.momentum.phase] ?? "#6B7280";
 
 	const chart = useMemo(() => {
 		if (!hasData) return null;
@@ -402,6 +411,23 @@ export function VolatilityChart({
 					/>
 					<text x={25} y={51} fill="#6B7280" fontSize={9}>
 						置信区间
+					</text>
+
+					{/* Phase 指示胶囊 */}
+					<rect
+						x={0}
+						y={60}
+						width={70}
+						height={14}
+						rx={3}
+						fill={phaseColor}
+						fillOpacity={0.15}
+						stroke={phaseColor}
+						strokeOpacity={0.3}
+						strokeWidth={0.5}
+					/>
+					<text x={6} y={70} fill={phaseColor} fontSize={8} fontFamily="monospace">
+						{result.momentum.phaseLabel}
 					</text>
 				</g>
 			</svg>

@@ -75,6 +75,21 @@ export interface GainDiagnostic {
   responsiveness: 'fast' | 'moderate' | 'slow'
 }
 
+/** 风险阶段（四象限） */
+export type RiskPhase = 'rising' | 'falling' | 'shock' | 'stable'
+
+/** 风险动量信号 — RiskGate v3 核心扩展 */
+export interface RiskMomentum {
+  /** Kalman Δ：最近 lookback 步的年化波动率变化量 */
+  kalmanDelta: number
+  /** EWMA / Kalman 收敛比 (> 1 = 发散, < 1 = 收敛) */
+  convergenceRatio: number
+  /** 综合风险阶段 */
+  phase: RiskPhase
+  /** 人类可读的风险方向描述 */
+  phaseLabel: string
+}
+
 /** 风控闸门信号 */
 export interface RiskGate {
   /** 当前 regime */
@@ -89,6 +104,8 @@ export interface RiskGate {
   allowMeanRevert: boolean
   /** 是否强制 delta-neutral / 降杠杆 */
   forceNeutral: boolean
+  /** 风险动量信号（v3 新增） */
+  momentum: RiskMomentum
 }
 
 export interface KalmanFilterResult {
@@ -114,6 +131,8 @@ export interface KalmanFilterResult {
   gainDiagnostic: GainDiagnostic
   /** 风控闸门信号 */
   riskGate: RiskGate
+  /** 风险动量（顶层快捷引用 = riskGate.momentum） */
+  momentum: RiskMomentum
 }
 
 // ── 预设参数 ──
@@ -192,34 +211,136 @@ export function diagnoseGain(gain: number): GainDiagnostic {
   return { isLagging: true, responsiveness: 'slow' }
 }
 
+// ── Phase 标签映射 ──
+const PHASE_LABELS: Record<RiskPhase, string> = {
+  rising: '风险上升',
+  falling: '风险消退',
+  shock: '事件余震',
+  stable: '结构稳定',
+}
+
+/**
+ * 风险动量计算
+ *
+ * 两个正交信号组合判定四象限：
+ *   Kalman Δ  = 结构性风险趋势（慢变量 5 日差分）
+ *   Convergence = EWMA / Kalman（快/慢变量发散度）
+ *
+ * 四象限规则：
+ *   rising ⬆️  : Δ > 0 且 convergence > 1.2
+ *   falling ⬇️ : Δ < 0 且 convergence < 0.9
+ *   shock ⚡   : |Δ| < 阈值 但 convergence > 1.5（事件冲击余震）
+ *   stable ◆   : 其余
+ */
+export function computeRiskMomentum(
+  kalmanVols: number[],
+  ewmaVols: number[],
+  lookback = 5,
+): RiskMomentum {
+  const n = kalmanVols.length
+  if (n < lookback + 1 || ewmaVols.length < 1) {
+    return { kalmanDelta: 0, convergenceRatio: 1, phase: 'stable', phaseLabel: PHASE_LABELS.stable }
+  }
+
+  const currentKalman = kalmanVols[n - 1]
+  const prevKalman = kalmanVols[n - 1 - lookback]
+  const kalmanDelta = currentKalman - prevKalman
+
+  const currentEwma = ewmaVols[ewmaVols.length - 1]
+  const convergenceRatio = currentKalman > 0 ? currentEwma / currentKalman : 1
+
+  // 四象限判定
+  // Δ 阈值：年化 vol 的 2%（避免噪声触发）
+  const deltaThreshold = 0.02
+  let phase: RiskPhase
+
+  if (Math.abs(kalmanDelta) < deltaThreshold && convergenceRatio > 1.5) {
+    // Kalman 几乎没动，但 EWMA 远高于 Kalman → 事件冲击余震
+    phase = 'shock'
+  } else if (kalmanDelta > deltaThreshold && convergenceRatio > 1.2) {
+    // 结构性上升 + EWMA 领先 Kalman → 风险加速
+    phase = 'rising'
+  } else if (kalmanDelta < -deltaThreshold && convergenceRatio < 0.9) {
+    // 结构性下降 + EWMA 回落到 Kalman 之下 → 风险消退
+    phase = 'falling'
+  } else {
+    phase = 'stable'
+  }
+
+  return {
+    kalmanDelta,
+    convergenceRatio,
+    phase,
+    phaseLabel: PHASE_LABELS[phase],
+  }
+}
+
 /**
  * 风控闸门计算
  *
  * Regime → 策略允许/禁止
  * Vol → 杠杆/止损
+ * Momentum → 方向性调整（v3 新增）
  */
 export function computeRiskGate(
   annualizedVol: number,
   regime: VolRegime,
+  momentum: RiskMomentum,
 ): RiskGate {
   // 杠杆：1/vol，归一化到 [0.5, 3]
   const rawLeverage = annualizedVol > 0 ? 1 / annualizedVol : 3
-  const suggestedLeverage = Math.max(0.5, Math.min(3, rawLeverage))
+  let suggestedLeverage = Math.max(0.5, Math.min(3, rawLeverage))
 
   // 止损宽度：vol × 2（2倍标准差覆盖）
   const suggestedStopWidth = annualizedVol * 2
+
+  // 基础策略许可（Regime 驱动）
+  let allowTrend = regime === 'low'
+  let allowMeanRevert = regime === 'medium'
+  let forceNeutral = regime === 'high'
+
+  // ── v3: Momentum 方向性修正 ──
+  switch (momentum.phase) {
+    case 'shock':
+      // 余震期：无论 regime 如何，强制中性
+      forceNeutral = true
+      allowTrend = false
+      allowMeanRevert = false
+      suggestedLeverage = Math.min(suggestedLeverage, 1)
+      break
+    case 'rising':
+      // 风险上升期：杠杆折扣 × 0.7
+      suggestedLeverage *= 0.7
+      suggestedLeverage = Math.max(0.5, suggestedLeverage)
+      break
+    case 'falling':
+      // 风险消退期：开放均值回归窗口
+      if (regime !== 'high') {
+        allowMeanRevert = true
+      }
+      break
+    // stable: 不做额外修正
+  }
 
   return {
     regime,
     suggestedLeverage,
     suggestedStopWidth,
-    allowTrend: regime === 'low',
-    allowMeanRevert: regime === 'medium',
-    forceNeutral: regime === 'high',
+    allowTrend,
+    allowMeanRevert,
+    forceNeutral,
+    momentum,
   }
 }
 
 // ── 空结果常量 ──
+
+const EMPTY_MOMENTUM: RiskMomentum = {
+  kalmanDelta: 0,
+  convergenceRatio: 1,
+  phase: 'stable',
+  phaseLabel: PHASE_LABELS.stable,
+}
 
 const EMPTY_RESULT: KalmanFilterResult = {
   steps: [],
@@ -231,6 +352,7 @@ const EMPTY_RESULT: KalmanFilterResult = {
   regimeHistory: [],
   ewma: { values: [], currentVol: 0 },
   gainDiagnostic: { isLagging: false, responsiveness: 'moderate' },
+  momentum: EMPTY_MOMENTUM,
   riskGate: {
     regime: 'low',
     suggestedLeverage: 3,
@@ -238,6 +360,7 @@ const EMPTY_RESULT: KalmanFilterResult = {
     allowTrend: true,
     allowMeanRevert: false,
     forceNeutral: false,
+    momentum: EMPTY_MOMENTUM,
   },
 }
 
@@ -337,7 +460,12 @@ export function runKalmanFilter(
   const finalGain = last.kalmanGain
   const regime = regimeHistory[regimeHistory.length - 1]
 
-  return {
+    const momentum = computeRiskMomentum(
+      steps.map(s => s.annualizedVol),
+      ewma.values,
+    )
+
+    return {
     steps,
     currentVol,
     maxVol,
@@ -347,6 +475,7 @@ export function runKalmanFilter(
     regimeHistory,
     ewma,
     gainDiagnostic: diagnoseGain(finalGain),
-    riskGate: computeRiskGate(currentVol, regime),
+    momentum,
+    riskGate: computeRiskGate(currentVol, regime, momentum),
   }
 }
