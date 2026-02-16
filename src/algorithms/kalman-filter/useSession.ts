@@ -1,8 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import {
 	defaultKalmanInput,
-	DEFAULT_EWMA_SPAN,
-	DEFAULT_REGIME_THRESHOLDS,
 	KALMAN_PRESETS,
 	type KalmanFilterInput,
 	type KalmanFilterResult,
