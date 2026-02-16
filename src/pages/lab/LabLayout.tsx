@@ -1,7 +1,7 @@
 import { RiskFlowLogo, MaterialIcon } from "../../components/Logo";
 import { ALGORITHM_CATALOG, type AlgorithmId } from "../../algorithms/registry";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useRef, useLayoutEffect, useCallback } from "react";
 
 interface LabLayoutProps {
   children: React.ReactNode;
@@ -15,6 +15,31 @@ export function LabLayout({ children, sidebar, activeId, actions }: LabLayoutPro
   const [isRightCollapsed, setRightPanelCollapsed] = useState(false);
   const navigateToLab = (id: AlgorithmId) => navigate(`/lab/${id}`);
   const navigateToHub = () => navigate("/");
+
+  /* ─── 滑动指示器状态 ─── */
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+
+  const updateIndicator = useCallback(() => {
+    const activeIndex = ALGORITHM_CATALOG.findIndex((a) => a.id === activeId);
+    const el = tabRefs.current[activeIndex];
+    const container = containerRef.current;
+    if (el && container) {
+      const containerRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      setIndicator({
+        left: elRect.left - containerRect.left,
+        width: elRect.width,
+      });
+    }
+  }, [activeId]);
+
+  useLayoutEffect(() => {
+    updateIndicator();
+    window.addEventListener("resize", updateIndicator);
+    return () => window.removeEventListener("resize", updateIndicator);
+  }, [updateIndicator]);
 
   return (
     <div className="flex h-screen w-full flex-col bg-rf-bg pt-14 font-body text-white selection:bg-rf-primary selection:text-white">
@@ -35,8 +60,17 @@ export function LabLayout({ children, sidebar, activeId, actions }: LabLayoutPro
             RISKFLOW
           </h1>
         </div>
-        <div className="flex-1 overflow-x-auto px-4">
-          <div className="flex w-max items-center gap-1">
+        {/* ═══════ 导航标签 ═══════ */}
+        <nav className="ml-4 flex-1 overflow-x-auto">
+          <div
+            ref={containerRef}
+            className="relative inline-flex items-center gap-0.5 rounded-xl border border-white/10 bg-white/3 p-1 backdrop-blur-md"
+          >
+            {/* 滑动指示器 */}
+            <div
+              className="pointer-events-none absolute top-1 bottom-1 rounded-lg bg-linear-to-r from-rf-primary/80 to-rf-primary shadow-[0_0_15px_rgba(124,58,237,0.4)] transition-all duration-300 ease-out"
+              style={{ left: indicator.left, width: indicator.width }}
+            />
             {ALGORITHM_CATALOG.map((algo, index) => {
               const isActive = algo.id === activeId;
               const isDisabled = algo.status === "wip";
@@ -44,32 +78,40 @@ export function LabLayout({ children, sidebar, activeId, actions }: LabLayoutPro
                 <button
                   type="button"
                   key={algo.id}
+                  ref={(el) => { tabRefs.current[index] = el; }}
                   onClick={() => !isDisabled && navigateToLab(algo.id)}
                   disabled={isDisabled}
-                  className={`group relative rounded-sm border px-2.5 py-1.5 text-left transition-all ${
+                  className={`relative z-10 flex items-center gap-2 rounded-lg bg-transparent px-4 py-1.5 transition-colors ${
                     isActive
-                      ? "border-rf-primary/60 bg-rf-primary/15"
+                      ? "text-white"
                       : isDisabled
-                        ? "cursor-not-allowed border-white/5 bg-white/2"
-                        : "border-white/5 hover:border-rf-primary/30 hover:bg-white/8"
+                        ? "cursor-not-allowed text-white/20"
+                        : "text-gray-400 hover:text-white"
                   }`}
-                  title={algo.title}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className={`font-mono text-[9px] ${isDisabled ? "text-gray-700" : "text-gray-600"}`}>
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <span
-                      className={`truncate font-display text-[11px] font-medium ${isActive ? "text-white" : isDisabled ? "text-gray-600" : "text-gray-400 hover:text-white"}`}
-                    >
-                      {algo.title.toUpperCase()}
-                    </span>
-                  </div>
+                  <span
+                    className={`flex h-4 w-4 items-center justify-center rounded text-[9px] font-bold ${
+                      isActive
+                        ? "bg-white/20"
+                        : isDisabled
+                          ? "bg-white/5 opacity-30"
+                          : "bg-white/5 group-hover:bg-white/10"
+                    }`}
+                  >
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span
+                    className={`whitespace-nowrap text-xs ${
+                      isActive ? "font-semibold" : "font-medium"
+                    }`}
+                  >
+                    {algo.title.toUpperCase()}
+                  </span>
                 </button>
               );
             })}
           </div>
-        </div>
+        </nav>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <button

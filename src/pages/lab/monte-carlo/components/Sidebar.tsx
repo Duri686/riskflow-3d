@@ -37,40 +37,51 @@ export function Sidebar({ session }: SidebarProps) {
     <>
       <DataInputPanel onDataLoaded={handleDataLoaded} />
       
-      <div className="border-b border-white/10 py-4">
+      <div className="border-b border-border-subtle py-4">
         <div className="mx-4 mb-3 flex items-center justify-between">
           <h2 className="flex items-center gap-1.5 font-display text-xs font-bold tracking-widest text-white">
-            <Gauge className="h-3.5 w-3.5 text-rf-accent" />
+            <Gauge className="h-3.5 w-3.5 text-accent-purple" />
             模拟参数
           </h2>
         </div>
         <div className="mx-4 space-y-3">
           {/* 核心参数：买入价格 */}
-          <div className="flex items-center justify-between font-mono text-[10px] text-gray-400">
-            <span>买入价格</span>
-            <div className="flex items-center gap-1">
-              <span className="text-gray-500">$</span>
-              <input
-                type="number"
-                min={1}
-                max={1000000}
-                value={input.initialPrice}
-                onChange={(e) =>
-                  updateInput("initialPrice", Math.max(1, Number(e.target.value)))
-                }
-                className="w-20 border-b border-rf-accent/50 bg-transparent px-1 text-right text-rf-accent outline-none focus:border-rf-accent"
-              />
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between font-mono text-[10px] text-text-muted">
+              <span>买入价格</span>
+              <div className="flex items-center gap-1">
+                <span className="text-text-muted">$</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={200000}
+                  value={input.initialPrice}
+                  onChange={(e) =>
+                    updateInput("initialPrice", Math.max(1, Number(e.target.value)))
+                  }
+                  className="w-20 border-b border-accent-green/50 bg-transparent px-1 text-right text-accent-green outline-none focus:border-accent-green"
+                />
+              </div>
             </div>
+            <input
+              type="range"
+              min={1}
+              max={200000}
+              value={input.initialPrice}
+              onChange={(e) =>
+                updateInput("initialPrice", Math.max(1, Number(e.target.value)))
+              }
+              className="w-full"
+            />
           </div>
 
           {/* 核心参数：持仓周期（快捷选项） */}
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between font-mono text-[10px] text-gray-400">
+            <div className="flex items-center justify-between font-mono text-[10px] text-text-muted">
               <span>持仓周期</span>
             </div>
-            <div className="flex gap-1.5">
+            <div className="grid grid-cols-3 gap-1">
               {[
-                { label: "30天", days: 30, years: 30 / TRADING_DAYS_PER_YEAR },
                 { label: "90天", days: 90, years: 90 / TRADING_DAYS_PER_YEAR },
                 { label: "6个月", days: 180, years: 180 / TRADING_DAYS_PER_YEAR },
                 { label: "1年", days: 365, years: 1 },
@@ -86,10 +97,10 @@ export function Sidebar({ session }: SidebarProps) {
                         steps: Math.round(opt.years * TRADING_DAYS_PER_YEAR),
                       });
                     }}
-                    className={`flex-1 rounded px-1 py-1 font-mono text-[10px] transition-all ${
+                    className={`rounded py-1 font-mono text-[10px] transition-all ${
                       isActive
-                        ? "border border-rf-accent/60 bg-rf-accent/15 text-rf-accent"
-                        : "border border-white/10 bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300"
+                        ? "border border-accent-purple bg-accent-purple/20 text-accent-purple"
+                        : "border border-border-subtle hover:bg-white/5"
                     }`}
                   >
                     {opt.label}
@@ -100,14 +111,14 @@ export function Sidebar({ session }: SidebarProps) {
           </div>
 
           {/* σ/μ 只读展示 + 可展开微调 */}
-          <div className="rounded border border-white/10 bg-white/5 px-2.5 py-2">
+          <div className="rounded-lg border border-border-subtle bg-dark-bg p-3">
             <button
               type="button"
               onClick={() => setShowSigmaMuSliders(!showSigmaMuSliders)}
-              className="flex w-full items-center justify-between bg-transparent font-mono text-[9px] text-gray-500"
+              className="flex w-full items-center justify-between bg-transparent font-mono text-[10px] text-text-muted"
             >
-              <span>参数来源：默认值</span>
-              <span className="flex items-center gap-0.5 text-gray-600 hover:text-gray-400">
+              <span className="font-bold">参数来源: 默认值</span>
+              <span className="flex items-center gap-0.5 text-accent-purple">
                 自定义{" "}
                 {showSigmaMuSliders ? (
                   <ChevronDown className="h-3 w-3" />
@@ -116,31 +127,31 @@ export function Sidebar({ session }: SidebarProps) {
                 )}
               </span>
             </button>
-            <div className="mt-1.5 flex items-center justify-between font-mono text-[10px]">
-              <span className="text-gray-400">
-                σ{" "}
-                <span className="text-rf-accent">
+            <div className="mt-2 grid grid-cols-2 gap-4 font-mono text-[10px]">
+              <div>
+                <div className="text-text-muted opacity-50">σ 波动率</div>
+                <div className="mt-0.5 text-xs font-semibold text-accent-green">
                   {(input.volatility * 100).toFixed(1)}%
-                </span>
-              </span>
-              <span className="text-gray-400">
-                μ{" "}
-                <span
-                  className={
-                    input.drift >= 0 ? "text-[#00D4AA]" : "text-[#FF4757]"
-                  }
+                </div>
+              </div>
+              <div>
+                <div className="text-text-muted opacity-50">μ 预期收益</div>
+                <div
+                  className={`mt-0.5 text-xs font-semibold ${
+                    input.drift >= 0 ? "text-accent-green" : "text-accent-red"
+                  }`}
                 >
                   {input.drift > 0 ? "+" : ""}
                   {(input.drift * 100).toFixed(1)}%
-                </span>
-              </span>
+                </div>
+              </div>
             </div>
             {showSigmaMuSliders && (
-              <div className="mt-2 space-y-2 border-t border-white/10 pt-2">
+              <div className="mt-2 space-y-2 border-t border-border-subtle pt-2">
                 <div className="space-y-1">
-                  <div className="flex justify-between font-mono text-[9px] text-gray-500">
+                  <div className="flex justify-between font-mono text-[9px] text-text-muted">
                     <span>波动率 σ</span>
-                    <span className="text-rf-accent">
+                    <span className="text-accent-green">
                       {(input.volatility * 100).toFixed(1)}%
                     </span>
                   </div>
@@ -156,11 +167,11 @@ export function Sidebar({ session }: SidebarProps) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <div className="flex justify-between font-mono text-[9px] text-gray-500">
+                  <div className="flex justify-between font-mono text-[9px] text-text-muted">
                     <span>预期收益率 μ</span>
                     <span
                       className={
-                        input.drift >= 0 ? "text-[#00D4AA]" : "text-[#FF4757]"
+                        input.drift >= 0 ? "text-accent-green" : "text-accent-red"
                       }
                     >
                       {input.drift > 0 ? "+" : ""}
@@ -186,7 +197,7 @@ export function Sidebar({ session }: SidebarProps) {
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex w-full items-center gap-1 bg-transparent font-mono text-[9px] text-gray-600 hover:text-gray-400"
+            className="flex w-full items-center justify-center gap-2 rounded-md border border-border-subtle py-2 text-xs text-text-muted transition-colors hover:bg-white/5"
           >
             <Settings className="h-3 w-3" />
             高级设置
@@ -197,11 +208,11 @@ export function Sidebar({ session }: SidebarProps) {
             )}
           </button>
           {showAdvanced && (
-            <div className="space-y-2 rounded border border-white/10 bg-white/5 p-2">
+            <div className="space-y-2 rounded-lg border border-border-subtle bg-dark-bg p-2">
               <div className="space-y-1">
-                <div className="flex items-center justify-between font-mono text-[9px] text-gray-500">
+                <div className="flex items-center justify-between font-mono text-[9px] text-text-muted">
                   <span>时间步数</span>
-                  <span className="text-gray-400">
+                  <span className="text-white">
                     {input.steps} 天
                   </span>
                 </div>
@@ -217,9 +228,9 @@ export function Sidebar({ session }: SidebarProps) {
                 />
               </div>
               <div className="space-y-1">
-                <div className="flex items-center justify-between font-mono text-[9px] text-gray-500">
+                <div className="flex items-center justify-between font-mono text-[9px] text-text-muted">
                   <span>模拟路径</span>
-                  <span className="text-gray-400">
+                  <span className="text-white">
                     {input.paths} 条
                   </span>
                 </div>

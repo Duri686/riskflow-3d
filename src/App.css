@@ -22,33 +22,42 @@
   --color-rf-border-btn-hover: rgba(124, 77, 255, 0.8);
 
   /* 文字色系 — 高对比度层级 */
-  --color-rf-text: #EDEDF0;
-  --color-rf-text-secondary: #8F90A6;
-  --color-rf-text-muted: #5A5B6A;
-  --color-rf-text-dim: #3A3B4A;
-  --color-rf-text-label: #EDEDF0;
-  --color-rf-text-link: #00BFA5;
-  --color-rf-text-nav: #5A5B6A;
-  --color-rf-text-nav-em: #8F90A6;
+  --color-rf-text: #ededf0;
+  --color-rf-text-secondary: #8f90a6;
+  --color-rf-text-muted: #5a5b6a;
+  --color-rf-text-dim: #3a3b4a;
+  --color-rf-text-label: #ededf0;
+  --color-rf-text-link: #00bfa5;
+  --color-rf-text-nav: #5a5b6a;
+  --color-rf-text-nav-em: #8f90a6;
 
   /* 状态色 */
-  --color-rf-ready: #00BFA5;
+  --color-rf-ready: #00bfa5;
   --color-rf-ready-bg: rgba(0, 191, 165, 0.1);
-  --color-rf-wip: #FFB224;
+  --color-rf-wip: #ffb224;
   --color-rf-wip-bg: rgba(255, 178, 36, 0.1);
 
   /* 强调色 — Electric Indigo + Cyan Teal */
-  --color-rf-primary: #7C4DFF;
-  --color-rf-accent: #00BFA5;
-  --color-rf-gradient-start: #7C4DFF;
-  --color-rf-gradient-end: #00BFA5;
+  --color-rf-primary: #7c4dff;
+  --color-rf-accent: #00bfa5;
+  --color-rf-gradient-start: #7c4dff;
+  --color-rf-gradient-end: #00bfa5;
 
   /* 图表色彩系统 */
-  --color-rf-chart-1: #7C4DFF;
-  --color-rf-chart-2: #00BFA5;
-  --color-rf-chart-3: #FF6B6B;
-  --color-rf-chart-4: #4ECDC4;
-  --color-rf-chart-5: #8F90A6;
+  --color-rf-chart-1: #7c4dff;
+  --color-rf-chart-2: #00bfa5;
+  --color-rf-chart-3: #ff6b6b;
+  --color-rf-chart-4: #4ecdc4;
+  --color-rf-chart-5: #8f90a6;
+
+  /* 侧边栏设计语义色 — 与参考设计对齐 */
+  --color-dark-bg: #0a0a0c;
+  --color-panel-bg: #121217;
+  --color-accent-purple: #7c3aed;
+  --color-accent-green: #10b981;
+  --color-accent-red: #ef4444;
+  --color-border-subtle: #2d2d35;
+  --color-text-muted: #9ca3af;
 
   /* 按钮渐变 */
   --color-rf-btn-from: rgba(124, 77, 255, 0.2);
@@ -65,9 +74,9 @@
   --color-rf-scene-bg: #050507;
 
   /* 字体 — 科技终端风格 */
-  --font-sans: 'Satoshi', 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-display: 'Space Grotesk', 'Inter', 'PingFang SC', sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  --font-sans: "Satoshi", "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-display: "Space Grotesk", "Inter", "PingFang SC", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
 
   /* 尺寸 */
   --spacing-112: 28rem;
@@ -114,7 +123,11 @@
 
   button {
     border: 1px solid var(--color-rf-border-btn);
-    background: linear-gradient(135deg, var(--color-rf-btn-from), var(--color-rf-btn-to));
+    background: linear-gradient(
+      135deg,
+      var(--color-rf-btn-from),
+      var(--color-rf-btn-to)
+    );
     color: var(--color-rf-text);
     border-radius: var(--radius-btn);
     padding: 8px 14px;
@@ -126,7 +139,7 @@
     border-color: var(--color-rf-border-btn-hover);
   }
 
-  input[type='range'] {
+  input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
@@ -138,7 +151,7 @@
     margin: 6px 0;
   }
 
-  input[type='range']::-webkit-slider-thumb {
+  input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 14px;
@@ -151,11 +164,11 @@
     transition: box-shadow 150ms ease;
   }
 
-  input[type='range']::-webkit-slider-thumb:hover {
+  input[type="range"]::-webkit-slider-thumb:hover {
     box-shadow: 0 0 0 5px rgba(88, 169, 255, 0.25);
   }
 
-  input[type='range']::-moz-range-thumb {
+  input[type="range"]::-moz-range-thumb {
     width: 14px;
     height: 14px;
     border-radius: 50%;
@@ -165,7 +178,7 @@
     box-shadow: 0 0 0 3px rgba(88, 169, 255, 0.15);
   }
 
-  input[type='range']::-moz-range-track {
+  input[type="range"]::-moz-range-track {
     height: 4px;
     background: var(--color-rf-progress-track);
     border-radius: 2px;
@@ -208,7 +221,11 @@
   .progress-bar {
     height: 100%;
     border-radius: var(--radius-pill);
-    background: linear-gradient(90deg, var(--color-rf-gradient-start), var(--color-rf-gradient-end));
+    background: linear-gradient(
+      90deg,
+      var(--color-rf-gradient-start),
+      var(--color-rf-gradient-end)
+    );
   }
 
   .rf-brand-badge {
@@ -248,18 +265,30 @@
   }
 
   .rf-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.1));
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.16),
+      rgba(255, 255, 255, 0.1)
+    );
     border-radius: var(--radius-pill);
     border: 1px solid rgba(5, 5, 7, 0.85);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   }
 
   .rf-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(124, 77, 255, 0.18), rgba(0, 191, 165, 0.12));
+    background: linear-gradient(
+      180deg,
+      rgba(124, 77, 255, 0.18),
+      rgba(0, 191, 165, 0.12)
+    );
   }
 
   .rf-scrollbar::-webkit-scrollbar-thumb:active {
-    background: linear-gradient(180deg, rgba(124, 77, 255, 0.22), rgba(0, 191, 165, 0.16));
+    background: linear-gradient(
+      180deg,
+      rgba(124, 77, 255, 0.22),
+      rgba(0, 191, 165, 0.16)
+    );
   }
 
   /* 文字发光效果 */
@@ -273,26 +302,40 @@
 
   /* 复古文字阴影 */
   .retro-text-shadow {
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(124, 77, 255, 0.3);
+    text-shadow:
+      0 0 10px rgba(255, 255, 255, 0.5),
+      0 0 20px rgba(124, 77, 255, 0.3);
   }
 
   /* 扫描线背景 */
   .scanline-overlay {
-    background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06));
-    background-size: 100% 4px, 6px 100%;
+    background-image:
+      linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+      linear-gradient(
+        90deg,
+        rgba(255, 0, 0, 0.06),
+        rgba(0, 255, 0, 0.02),
+        rgba(0, 0, 255, 0.06)
+      );
+    background-size:
+      100% 4px,
+      6px 100%;
     pointer-events: none;
   }
 
   /* 扫描线（简化版） */
   .scanlines {
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+    background: linear-gradient(
+      rgba(18, 16, 16, 0) 50%,
+      rgba(0, 0, 0, 0.25) 50%
+    );
     background-size: 100% 4px;
     pointer-events: none;
   }
 
   /* 3D 网格背景 */
   .bg-grid-3d {
-    background-image: 
+    background-image:
       linear-gradient(to right, rgba(124, 77, 255, 0.1) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(124, 77, 255, 0.1) 1px, transparent 1px);
     background-size: 50px 50px;
@@ -303,26 +346,72 @@
   /* 3D 透视网格 */
   .perspective-grid {
     background-image:
-      radial-gradient(circle at 50% 50%, rgba(124, 77, 255, 0.1) 0%, transparent 50%),
-      linear-gradient(0deg, transparent 24%, rgba(124, 77, 255, .15) 25%, rgba(124, 77, 255, .15) 26%, transparent 27%, transparent 74%, rgba(124, 77, 255, .15) 75%, rgba(124, 77, 255, .15) 76%, transparent 77%, transparent),
-      linear-gradient(90deg, transparent 24%, rgba(124, 77, 255, .15) 25%, rgba(124, 77, 255, .15) 26%, transparent 27%, transparent 74%, rgba(124, 77, 255, .15) 75%, rgba(124, 77, 255, .15) 76%, transparent 77%, transparent);
-    background-size: 100% 100%, 60px 60px, 60px 60px;
+      radial-gradient(
+        circle at 50% 50%,
+        rgba(124, 77, 255, 0.1) 0%,
+        transparent 50%
+      ),
+      linear-gradient(
+        0deg,
+        transparent 24%,
+        rgba(124, 77, 255, 0.15) 25%,
+        rgba(124, 77, 255, 0.15) 26%,
+        transparent 27%,
+        transparent 74%,
+        rgba(124, 77, 255, 0.15) 75%,
+        rgba(124, 77, 255, 0.15) 76%,
+        transparent 77%,
+        transparent
+      ),
+      linear-gradient(
+        90deg,
+        transparent 24%,
+        rgba(124, 77, 255, 0.15) 25%,
+        rgba(124, 77, 255, 0.15) 26%,
+        transparent 27%,
+        transparent 74%,
+        rgba(124, 77, 255, 0.15) 75%,
+        rgba(124, 77, 255, 0.15) 76%,
+        transparent 77%,
+        transparent
+      );
+    background-size:
+      100% 100%,
+      60px 60px,
+      60px 60px;
     transform: perspective(500px) rotateX(60deg) scale(2);
     transform-origin: center 20%;
     opacity: 0.6;
-    mask-image: linear-gradient(to bottom, transparent 0%, black 40%, black 100%);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 40%, black 100%);
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      black 40%,
+      black 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      black 40%,
+      black 100%
+    );
   }
 
   /* 光晕按钮 */
   .glow-border:hover {
-    box-shadow: 0 0 15px rgba(124, 77, 255, 0.6), inset 0 0 10px rgba(124, 77, 255, 0.2);
+    box-shadow:
+      0 0 15px rgba(124, 77, 255, 0.6),
+      inset 0 0 10px rgba(124, 77, 255, 0.2);
   }
 
   /* 闪烁光标 */
   @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
   }
 
   .animate-blink {
@@ -331,8 +420,18 @@
 
   /* 网格移动动画 */
   @keyframes grid-move {
-    0% { background-position: 50% 50%, 0 0, 0 0; }
-    100% { background-position: 50% 50%, 0 60px, 0 60px; }
+    0% {
+      background-position:
+        50% 50%,
+        0 0,
+        0 0;
+    }
+    100% {
+      background-position:
+        50% 50%,
+        0 60px,
+        0 60px;
+    }
   }
 
   .animate-grid-move {
@@ -341,15 +440,25 @@
 
   /* 按钮闪光效果 */
   @keyframes shimmer {
-    100% { transform: translateX(100%); }
+    100% {
+      transform: translateX(100%);
+    }
   }
 
   /* CRT 闪烁 */
   @keyframes textFlicker {
-    0% { opacity: 0.95; }
-    5% { opacity: 0.8; }
-    10% { opacity: 0.95; }
-    100% { opacity: 0.95; }
+    0% {
+      opacity: 0.95;
+    }
+    5% {
+      opacity: 0.8;
+    }
+    10% {
+      opacity: 0.95;
+    }
+    100% {
+      opacity: 0.95;
+    }
   }
 
   .crt-flicker {
@@ -479,9 +588,13 @@
       rgba(0, 191, 165, 0.3) 50%,
       rgba(124, 77, 255, 0.2) 100%
     );
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
     mask-composite: exclude;
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     padding: 1px;
     transition: opacity 480ms cubic-bezier(0.2, 0.9, 0.2, 1);
@@ -520,8 +633,12 @@
 
   /* 入场序列动画 — 分步延迟 */
   @keyframes rf-grid-fade {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   .rf-grid-enter {
@@ -529,10 +646,18 @@
   }
 
   /* 卡片依次浮现 — 0.1s 递增 */
-  .rf-stagger-1 { animation-delay: 400ms; }
-  .rf-stagger-2 { animation-delay: 500ms; }
-  .rf-stagger-3 { animation-delay: 600ms; }
-  .rf-stagger-4 { animation-delay: 700ms; }
+  .rf-stagger-1 {
+    animation-delay: 400ms;
+  }
+  .rf-stagger-2 {
+    animation-delay: 500ms;
+  }
+  .rf-stagger-3 {
+    animation-delay: 600ms;
+  }
+  .rf-stagger-4 {
+    animation-delay: 700ms;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .rf-reveal {

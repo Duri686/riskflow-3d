@@ -15,16 +15,16 @@ function getVerdict(
     return {
       icon: ShieldCheck,
       text: "风险可控，正向预期",
-      color: "text-[#00D4AA]",
-      bg: "bg-[#00D4AA]/10 border-[#00D4AA]/30",
+      color: "text-accent-green",
+      bg: "bg-accent-green/10 border-accent-green/30",
     };
   }
   if (winRate >= 0.5 && medianReturn > 0) {
     return {
       icon: TrendingUp,
       text: "中性偏多，注意仓位",
-      color: "text-[#00D4AA]",
-      bg: "bg-[#00D4AA]/10 border-[#00D4AA]/30",
+      color: "text-accent-green",
+      bg: "bg-accent-green/10 border-accent-green/30",
     };
   }
   if (winRate >= 0.4) {
@@ -38,8 +38,8 @@ function getVerdict(
   return {
     icon: TrendingDown,
     text: "风险极高，不建议入场",
-    color: "text-[#FF4757]",
-    bg: "bg-[#FF4757]/10 border-[#FF4757]/30",
+    color: "text-accent-red",
+    bg: "bg-accent-red/10 border-accent-red/30",
   };
 }
 
@@ -56,7 +56,7 @@ export function RiskCard({ metrics }: RiskCardProps) {
     <div className="p-4">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="flex items-center gap-1.5 font-display text-xs font-bold tracking-widest text-white">
-          <ShieldAlert className="h-3.5 w-3.5 text-yellow-400" />
+          <ShieldAlert className="h-3.5 w-3.5 text-accent-purple" />
           风险评估
         </h2>
       </div>
@@ -74,27 +74,27 @@ export function RiskCard({ metrics }: RiskCardProps) {
       {/* 关键指标 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between font-mono text-[10px]">
-          <span className="text-gray-500">当前均价</span>
+          <span className="text-text-muted">当前均价</span>
           <span className="font-semibold text-white">
             ${metrics.current.meanPrice.toFixed(2)}
           </span>
         </div>
         <div className="flex items-center justify-between font-mono text-[10px]">
-          <span className="text-gray-500">价格区间 (5~95%)</span>
+          <span className="text-text-muted">价格区间 (5~95%)</span>
           <span className="text-white">
-            <span className="text-[#FF4757]">
+            <span className="text-accent-red">
               ${metrics.current.p05Price.toFixed(0)}
             </span>
-            <span className="text-gray-600"> ~ </span>
-            <span className="text-[#00D4AA]">
+            <span className="text-text-muted"> ~ </span>
+            <span className="text-accent-green">
               ${metrics.current.p95Price.toFixed(0)}
             </span>
           </span>
         </div>
         <div className="flex items-center justify-between font-mono text-[10px]">
-          <span className="text-gray-500">盈亏比</span>
+          <span className="text-text-muted">盈亏比</span>
           <span
-            className={`font-semibold ${(metrics.final.upDownRatio ?? 0) >= 1 ? "text-[#00D4AA]" : "text-[#FF4757]"}`}
+            className={`font-semibold ${(metrics.final.upDownRatio ?? 0) >= 1 ? "text-accent-green" : "text-accent-red"}`}
           >
             {(metrics.final.upDownRatio ?? 0).toFixed(2)}
           </span>
