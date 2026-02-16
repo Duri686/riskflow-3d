@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KalmanFilterResult } from "./engine";
+import { TRADING_DAYS_PER_YEAR } from "../monte-carlo/constants";
 
 interface VolatilityChartProps {
 	result: KalmanFilterResult;
@@ -40,18 +41,18 @@ export function VolatilityChart({
 		const W = size.width - MARGIN.left - MARGIN.right;
 		const H = size.height - MARGIN.top - MARGIN.bottom;
 
-		// 观测值：|r_t| 的年化近似 = |r_t| × √252
-		const observedVols = dailyReturns.map((r) => Math.abs(r) * Math.sqrt(252));
+		// 观测值：|r_t| 的年化近似 = |r_t| × √TRADING_DAYS_PER_YEAR
+		const observedVols = dailyReturns.map((r) => Math.abs(r) * Math.sqrt(TRADING_DAYS_PER_YEAR));
 
 		// 估计值
 		const estimatedVols = steps.map((s) => s.annualizedVol);
 
 		// 置信带上下界
 		const upperBand = steps.map((s) =>
-			Math.sqrt(Math.max(0, s.estimated + Math.sqrt(s.errorCovariance)) * 252),
+			Math.sqrt(Math.max(0, s.estimated + Math.sqrt(s.errorCovariance)) * TRADING_DAYS_PER_YEAR),
 		);
 		const lowerBand = steps.map((s) =>
-			Math.sqrt(Math.max(0, s.estimated - Math.sqrt(s.errorCovariance)) * 252),
+			Math.sqrt(Math.max(0, s.estimated - Math.sqrt(s.errorCovariance)) * TRADING_DAYS_PER_YEAR),
 		);
 
 		// Y 轴范围

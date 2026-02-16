@@ -12,6 +12,8 @@
  *   R    = 观测噪声，控制单日收益率平方有多不靠谱
  */
 
+import { TRADING_DAYS_PER_YEAR } from '../monte-carlo/constants'
+
 // ── 类型定义 ──
 
 export interface KalmanFilterInput {
@@ -32,7 +34,7 @@ export interface KalmanStep {
   errorCovariance: number
   /** 卡尔曼增益 K_t */
   kalmanGain: number
-  /** 年化波动率 √(σ̂²_t × 252) */
+  /** 年化波动率 √(σ̂²_t × TRADING_DAYS_PER_YEAR) */
   annualizedVol: number
 }
 
@@ -80,14 +82,19 @@ export function runKalmanFilter(
     return { steps: [], currentVol: 0, maxVol: 0, minVol: 0, finalGain: 0 }
   }
 
-  // 初始状态：用前 20 个观测估计初始波动率
+  // 初始状态：用前 20 个有效观测估计初始波动率
   const initWindow = Math.min(20, dailyReturns.length)
   let sum = 0
+  let validCount = 0
   for (let i = 0; i < initWindow; i++) {
-    sum += dailyReturns[i] * dailyReturns[i]
+    const sq = dailyReturns[i] * dailyReturns[i]
+    if (Number.isFinite(sq)) {
+      sum += sq
+      validCount++
+    }
   }
-  let x = sum / initWindow // 初始状态估计 σ̂²_0
-  let P = x * 0.5          // 初始不确定性
+  let x = validCount > 0 ? sum / validCount : 1e-10 // 初始状态估计 σ̂²_0
+  let P = x * 0.5                                    // 初始不确定性
 
   const steps: KalmanStep[] = []
   let maxVol = 0
@@ -95,6 +102,22 @@ export function runKalmanFilter(
 
   for (let t = 0; t < dailyReturns.length; t++) {
     const observation = dailyReturns[t] * dailyReturns[t] // r²_t
+
+    // 防护：跳过无效观测（NaN / Infinity），保持上一步状态
+    if (!Number.isFinite(observation)) {
+      const annualizedVol = Math.sqrt(x * TRADING_DAYS_PER_YEAR)
+      if (annualizedVol > maxVol) maxVol = annualizedVol
+      if (annualizedVol < minVol) minVol = annualizedVol
+      steps.push({
+        t,
+        observed: 0,
+        estimated: x,
+        errorCovariance: P,
+        kalmanGain: 0,
+        annualizedVol,
+      })
+      continue
+    }
 
     // ── 预测步骤 ──
     const xPred = x           // 随机游走：预测 = 上一步估计
@@ -109,7 +132,7 @@ export function runKalmanFilter(
     x = Math.max(x, 1e-10)
     P = Math.max(P, 1e-12)
 
-    const annualizedVol = Math.sqrt(x * 252)
+    const annualizedVol = Math.sqrt(x * TRADING_DAYS_PER_YEAR)
 
     if (annualizedVol > maxVol) maxVol = annualizedVol
     if (annualizedVol < minVol) minVol = annualizedVol

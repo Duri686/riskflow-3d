@@ -3,6 +3,8 @@
  * 免 API Key，通过 Vite 代理访问
  */
 
+import { TRADING_DAYS_PER_YEAR } from './constants'
+
 const BINANCE_API = import.meta.env.DEV
   ? '/binance-api/klines'
   : 'https://api.binance.com/api/v3/klines'
@@ -70,7 +72,7 @@ export async function fetchBinanceKlines(
 
 /**
  * 从收盘价序列计算年化 σ 和 μ
- * 使用日对数收益率的标准差 × √252 年化
+ * 使用日对数收益率的标准差 × √TRADING_DAYS_PER_YEAR 年化
  */
 export function calculateSeriesParams(closes: number[]): {
   sigma: number
@@ -101,8 +103,8 @@ export function calculateSeriesParams(closes: number[]): {
     }, 0) / Math.max(1, logReturns.length - 1)
 
   const sigmaDaily = Math.sqrt(variance)
-  const sigma = sigmaDaily * Math.sqrt(252) // 年化波动率
-  const mu = mean * 252 // 年化收益率
+  const sigma = sigmaDaily * Math.sqrt(TRADING_DAYS_PER_YEAR) // 年化波动率
+  const mu = mean * TRADING_DAYS_PER_YEAR // 年化收益率
 
   return { sigma, mu, dailyReturns: logReturns }
 }
