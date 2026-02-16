@@ -17,15 +17,16 @@ export interface MonteCarloSessionSnapshot {
 const createInitialState = (input: MonteCarloInput): MonteCarloState =>
 	monteCarloEngine.createInitialState(input);
 
-export const createDefaultMonteCarloSnapshot = (): MonteCarloSessionSnapshot => {
-	const input = defaultMonteCarloInput;
+export const createDefaultMonteCarloSnapshot =
+	(): MonteCarloSessionSnapshot => {
+		const input = defaultMonteCarloInput;
 
-	return {
-		input,
-		state: createInitialState(input),
-		isPlaying: true,
+		return {
+			input,
+			state: createInitialState(input),
+			isPlaying: true,
+		};
 	};
-};
 
 export function useMonteCarloSession() {
 	const [input, setInput] = useState<MonteCarloInput>(defaultMonteCarloInput);
@@ -186,19 +187,35 @@ export function useMonteCarloSession() {
 		restartWithInput(defaultMonteCarloInput, true);
 	}, [restartWithInput]);
 
-	return {
-		input,
-		state,
-		isPlaying,
-		renderLayer,
-		metrics,
-		terminalPrices: state.cloud.terminalPrices,
-		updateInput,
-		updateMultipleInputs,
-		togglePlaying,
-		resimulate,
-		resetDefaults,
-		restoreSession,
-		getSnapshot,
-	};
+	return useMemo(
+		() => ({
+			input,
+			state,
+			isPlaying,
+			renderLayer,
+			metrics,
+			terminalPrices: state.cloud.terminalPrices,
+			updateInput,
+			updateMultipleInputs,
+			togglePlaying,
+			resimulate,
+			resetDefaults,
+			restoreSession,
+			getSnapshot,
+		}),
+		[
+			input,
+			state,
+			isPlaying,
+			renderLayer,
+			metrics,
+			updateInput,
+			updateMultipleInputs,
+			togglePlaying,
+			resimulate,
+			resetDefaults,
+			restoreSession,
+			getSnapshot,
+		],
+	);
 }

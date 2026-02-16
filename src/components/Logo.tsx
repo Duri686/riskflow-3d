@@ -10,13 +10,24 @@ const sizeMap = {
 	lg: "h-10 w-10",
 };
 
+const textSizeMap = {
+	sm: "text-sm tracking-[0.2em]",
+	md: "text-lg tracking-widest",
+	lg: "text-xl tracking-widest",
+};
+
+import { Link } from "react-router-dom";
+
 export function RiskFlowLogo({
 	className = "",
 	showText = true,
 	size = "md",
 }: LogoProps) {
 	return (
-		<div className={`flex items-center gap-2 ${className}`}>
+		<Link
+			to="/"
+			className={`flex items-center gap-2 transition-opacity hover:opacity-80 ${className}`}
+		>
 			<svg
 				className={sizeMap[size]}
 				viewBox="0 0 40 40"
@@ -89,12 +100,14 @@ export function RiskFlowLogo({
 				/>
 			</svg>
 			{showText && (
-				<span className="font-display text-lg font-bold tracking-widest text-white/90">
+				<span
+					className={`font-display font-bold ${textSizeMap[size]} text-white/90`}
+				>
 					RISKFLOW
 					<span className="text-rf-primary">_LAB</span>
 				</span>
 			)}
-		</div>
+		</Link>
 	);
 }
 
