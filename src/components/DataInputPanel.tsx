@@ -141,7 +141,7 @@ export function DataInputPanel({ onDataLoaded }: DataInputPanelProps) {
             </div>
             <div className="mt-1 flex justify-between text-gray-400">
               <span>年化收益率 μ</span>
-              <span className={dataStatus.mu >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}>
+              <span className={dataStatus.mu >= 0 ? 'text-rf-accent' : 'text-rf-chart-3'}>
                 {dataStatus.mu > 0 ? '+' : ''}{(dataStatus.mu * 100).toFixed(1)}%
               </span>
             </div>

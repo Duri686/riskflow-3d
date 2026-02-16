@@ -1,8 +1,9 @@
-import { useRef, useMemo, useEffect } from "react";
+import { useRef, useMemo, useEffect, useCallback } from "react";
 import * as THREE from "three";
 import { Text, Html, Line } from "@react-three/drei";
 import type { useBSSession } from "@/algorithms/black-scholes/useSession";
 import { calculateBS } from "@/algorithms/black-scholes/engine";
+import { useCSSVar } from "@/hooks/useCSSVar";
 
 interface SurfaceProps {
 	session: ReturnType<typeof useBSSession>;
@@ -13,13 +14,20 @@ export function Surface({ session }: SurfaceProps) {
 	const meshRef = useRef<THREE.Mesh>(null);
 	const geometryRef = useRef<THREE.PlaneGeometry>(null);
 
+    // Resolve CSS variables for 3D scene
+    const textMutedColor = useCSSVar('--color-text-muted', '#9ca3af');
+    const primaryColor = useCSSVar('--color-rf-primary', '#7c4dff');
+    const wipColor = useCSSVar('--color-rf-wip', '#ffb224');
+    const chart2Color = useCSSVar('--color-rf-chart-2', '#00bfa5');
+    const chart3Color = useCSSVar('--color-rf-chart-3', '#ff6b6b'); // Mapping pink to chart-3
+
 	// Grid setup
 	const width = S_RANGE.steps;
 	const height = T_RANGE.steps;
 
 	// Scale and Normalization Helpers
-	const scaleX = (val: number) => ((val - S_RANGE.min) / (S_RANGE.max - S_RANGE.min) - 0.5) * 10;
-	const scaleZ = (val: number) => ((val - T_RANGE.min) / (T_RANGE.max - T_RANGE.min) - 0.5) * 10;
+	const scaleX = useCallback((val: number) => ((val - S_RANGE.min) / (S_RANGE.max - S_RANGE.min) - 0.5) * 10, [S_RANGE]);
+	const scaleZ = useCallback((val: number) => ((val - T_RANGE.min) / (T_RANGE.max - T_RANGE.min) - 0.5) * 10, [T_RANGE]);
 	
 	// Y scale depends on metric
 	const getYScale = (metric: string) => {
@@ -55,7 +63,7 @@ export function Surface({ session }: SurfaceProps) {
 			currentResult[activeMetric as keyof typeof currentResult] * yScale + 0.1, // Lift marker slightly more
 			scaleZ(params.time)
 		);
-	}, [params.spot, params.time, currentResult, activeMetric, yScale]);
+	}, [params.spot, params.time, currentResult, activeMetric, yScale, scaleX, scaleZ]);
 
 	// ─── Reference Lines Calculation ───
 	
@@ -70,7 +78,7 @@ export function Surface({ session }: SurfaceProps) {
 			points.push(new THREE.Vector3(scaleX(params.strike), zVal * yScale + 0.08, scaleZ(t))); // Distinct lift
 		}
 		return points;
-	}, [params.strike, T_RANGE, params.volatility, params.rate, params.type, activeMetric, yScale]);
+	}, [params.strike, T_RANGE, params.volatility, params.rate, params.type, activeMetric, yScale, scaleX, scaleZ]);
 
 	// 2. Current Spot Profile (Fixed Spot, across all T) - Time Decay
 	const spotLinePoints = useMemo(() => {
@@ -83,7 +91,7 @@ export function Surface({ session }: SurfaceProps) {
 			points.push(new THREE.Vector3(scaleX(params.spot), zVal * yScale + 0.08, scaleZ(t)));
 		}
 		return points;
-	}, [params.spot, params.strike, T_RANGE, params.volatility, params.rate, params.type, activeMetric, yScale]);
+	}, [params.spot, params.strike, T_RANGE, params.volatility, params.rate, params.type, activeMetric, yScale, scaleX, scaleZ]);
 
 	// 3. Current Time Profile (Fixed Time, across all S) - Payoff Curve
 	const timeLinePoints = useMemo(() => {
@@ -96,7 +104,7 @@ export function Surface({ session }: SurfaceProps) {
 			points.push(new THREE.Vector3(scaleX(s), zVal * yScale + 0.08, scaleZ(params.time)));
 		}
 		return points;
-	}, [params.time, params.strike, S_RANGE, params.volatility, params.rate, params.type, activeMetric, yScale]);
+	}, [params.time, params.strike, S_RANGE, params.volatility, params.rate, params.type, activeMetric, yScale, scaleX, scaleZ]);
 
 
 	return (
@@ -108,8 +116,8 @@ export function Surface({ session }: SurfaceProps) {
 					args={[10, 10, width - 1, height - 1]} 
 				/>
 				<meshStandardMaterial
-					color="#8B5CF6"
-					emissive="#6366F1"
+					color={primaryColor}
+					emissive={primaryColor}
 					emissiveIntensity={0.2}
 					wireframe={false}
 					transparent
@@ -141,20 +149,20 @@ export function Surface({ session }: SurfaceProps) {
 			{/* Reference Lines Rendering */}
 			<group position={[0, -2, 0]} rotation={[0, 0, 0]}> 
 				{/* ATM Line - Gold/Yellow */}
-				<Line points={atmLinePoints} color="#FBBF24" lineWidth={2} transparent opacity={0.6} dashed={true} dashScale={2} gapSize={1} />
+				<Line points={atmLinePoints} color={wipColor} lineWidth={2} transparent opacity={0.6} dashed={true} dashScale={2} gapSize={1} />
 				
 				{/* Spot Profile Lines (Time Decay) - Cyan */}
-				<Line points={spotLinePoints} color="#2DD4BF" lineWidth={3} transparent opacity={0.8} />
+				<Line points={spotLinePoints} color={chart2Color} lineWidth={3} transparent opacity={0.8} />
 
 				{/* Time Profile Lines (Payoff) - Magenta */}
-				<Line points={timeLinePoints} color="#EC4899" lineWidth={3} transparent opacity={0.8} />
+				<Line points={timeLinePoints} color={chart3Color} lineWidth={3} transparent opacity={0.8} />
 			</group>
 
 			{/* Axes Labels */}
-			<Text position={[6, -2, 0]} rotation={[0, 0, 0]} fontSize={0.3} color="#9ca3af">
+			<Text position={[6, -2, 0]} rotation={[0, 0, 0]} fontSize={0.3} color={textMutedColor}>
 				Spot Price (S)
 			</Text>
-			<Text position={[0, -2, 6]} rotation={[0, Math.PI / 2, 0]} fontSize={0.3} color="#9ca3af">
+			<Text position={[0, -2, 6]} rotation={[0, Math.PI / 2, 0]} fontSize={0.3} color={textMutedColor}>
 				Time (T)
 			</Text>
 
@@ -292,10 +300,13 @@ function SideWalls({
 		return geo;
 	}, [surfaceData, width, height, scaleX, scaleZ, yScale]);
 
+	// Resolve color for side walls
+    const accentPurpleColor = useCSSVar('--color-accent-purple', '#7c3aed');
+
 	return (
 		<mesh geometry={geometry}>
 			<meshStandardMaterial 
-				color="#7C3AED" 
+				color={accentPurpleColor} 
 				transparent 
 				opacity={0.4} 
 				side={THREE.DoubleSide} 

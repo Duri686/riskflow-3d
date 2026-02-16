@@ -57,7 +57,8 @@ export function VolatilityChart({
 
 		// Y 轴范围
 		const allVals = [...observedVols, ...estimatedVols, ...upperBand];
-		const yMax = Math.min(Math.max(...allVals) * 1.1, 5); // 上限 500%
+		const maxDataVal = Math.max(...allVals);
+		const yMax = Math.max(maxDataVal * 1.1, 0.2); // 至少 20%，留出 10% 边距
 		const yMin = 0;
 
 		// 坐标映射
@@ -93,11 +94,21 @@ export function VolatilityChart({
 			"Z",
 		].join(" ");
 
-		// Y 轴刻度
+		// Y 轴刻度 (动态计算 nice step)
 		const yTicks: number[] = [];
-		const yStep = yMax <= 0.5 ? 0.1 : yMax <= 1 ? 0.2 : yMax <= 2 ? 0.5 : 1;
-		for (let tick = 0; tick <= yMax; tick += yStep) {
-			yTicks.push(tick);
+		const roughStep = yMax / 6;
+		const exponent = Math.floor(Math.log10(roughStep));
+		const fraction = roughStep / Math.pow(10, exponent);
+
+		let niceFraction = 1;
+		if (fraction >= 7) niceFraction = 10;
+		else if (fraction >= 3) niceFraction = 5;
+		else if (fraction >= 1.5) niceFraction = 2;
+
+		const yStep = niceFraction * Math.pow(10, exponent);
+
+		for (let tick = 0; tick <= yMax + yStep * 0.1; tick += yStep) {
+			yTicks.push(Number(tick.toFixed(10)));
 		}
 
 		// X 轴刻度（每 60 天一个）

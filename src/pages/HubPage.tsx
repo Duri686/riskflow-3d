@@ -39,7 +39,7 @@ export function HubPage() {
 					<div className="perspective-grid animate-grid-move h-full w-full border-t border-rf-primary/20" />
 				</div>
 				{/* 暗角 */}
-				<div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050507_90%)]" />
+				<div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,var(--color-rf-bg)_90%)]" />
 			</div>
 
 			{/* 顶部导航 */}

@@ -202,12 +202,12 @@ export function ReturnDistribution({
         <defs>
           {/* 颜色纠正：绿色=盈利，红色=亏损（金融惯例） */}
           <linearGradient id="profitGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#00D4AA" stopOpacity={0.9} />
-            <stop offset="100%" stopColor="#00D4AA" stopOpacity={0.3} />
+            <stop offset="0%" stopColor="var(--color-rf-accent)" stopOpacity={0.9} />
+            <stop offset="100%" stopColor="var(--color-rf-accent)" stopOpacity={0.3} />
           </linearGradient>
           <linearGradient id="lossGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#FF4757" stopOpacity={0.9} />
-            <stop offset="100%" stopColor="#FF4757" stopOpacity={0.3} />
+            <stop offset="0%" stopColor="var(--color-rf-chart-3)" stopOpacity={0.9} />
+            <stop offset="100%" stopColor="var(--color-rf-chart-3)" stopOpacity={0.3} />
           </linearGradient>
           <filter id="glow">
             <feGaussianBlur stdDeviation="2" result="blur" />
@@ -224,7 +224,7 @@ export function ReturnDistribution({
           y={padding.top}
           width={Math.max(0, zeroX - padding.left)}
           height={chartHeight}
-          fill="#FF4757"
+          fill="var(--color-rf-chart-3)"
           opacity={0.03}
         />
         <rect
@@ -232,7 +232,7 @@ export function ReturnDistribution({
           y={padding.top}
           width={Math.max(0, padding.left + chartWidth - zeroX)}
           height={chartHeight}
-          fill="#00D4AA"
+          fill="var(--color-rf-accent)"
           opacity={0.03}
         />
 
@@ -261,7 +261,7 @@ export function ReturnDistribution({
 
         {/* 密度曲线 */}
         {densityPath && (
-          <path d={densityPath} fill="none" stroke="#FFFFFF" strokeWidth={2} opacity={0.6} />
+          <path d={densityPath} fill="none" stroke="var(--color-rf-text)" strokeWidth={2} opacity={0.6} />
         )}
 
         {/* 零线（盈亏平衡点） */}
@@ -270,11 +270,11 @@ export function ReturnDistribution({
           y1={padding.top}
           x2={zeroX}
           y2={padding.top + chartHeight}
-          stroke="#FFFFFF"
+          stroke="var(--color-rf-text)"
           strokeWidth={2}
           strokeDasharray="4,4"
         />
-        <text x={zeroX} y={padding.top - 10 + labelOffsets[3]} fill="#FFFFFF" fontSize={11} textAnchor="middle">
+        <text x={zeroX} y={padding.top - 10 + labelOffsets[3]} fill="var(--color-rf-text)" fontSize={11} textAnchor="middle">
           盈亏平衡
         </text>
 
@@ -284,11 +284,11 @@ export function ReturnDistribution({
           y1={padding.top}
           x2={cvar95X}
           y2={padding.top + chartHeight}
-          stroke="#FF4757"
+          stroke="var(--color-rf-chart-3)"
           strokeWidth={1.5}
           strokeDasharray="3,3"
         />
-        <text x={cvar95X} y={padding.top - 10 + labelOffsets[0]} fill="#FF4757" fontSize={10} textAnchor="middle">
+        <text x={cvar95X} y={padding.top - 10 + labelOffsets[0]} fill="var(--color-rf-chart-3)" fontSize={10} textAnchor="middle">
           CVaR95: {stats.cvar95.toFixed(1)}%
         </text>
 
@@ -298,11 +298,11 @@ export function ReturnDistribution({
           y1={padding.top}
           x2={p05X}
           y2={padding.top + chartHeight}
-          stroke="#FF4757"
+          stroke="var(--color-rf-chart-3)"
           strokeWidth={2}
           filter="url(#glow)"
         />
-        <text x={p05X} y={padding.top - 10 + labelOffsets[1]} fill="#FF4757" fontSize={10} textAnchor="middle">
+        <text x={p05X} y={padding.top - 10 + labelOffsets[1]} fill="var(--color-rf-chart-3)" fontSize={10} textAnchor="middle">
           P5: {stats.p05.toFixed(1)}%
         </text>
 
@@ -312,11 +312,11 @@ export function ReturnDistribution({
           y1={padding.top}
           x2={p95X}
           y2={padding.top + chartHeight}
-          stroke="#00D4AA"
+          stroke="var(--color-rf-accent)"
           strokeWidth={1.5}
           strokeDasharray="3,3"
         />
-        <text x={p95X} y={padding.top - 10 + labelOffsets[4]} fill="#00D4AA" fontSize={10} textAnchor="middle">
+        <text x={p95X} y={padding.top - 10 + labelOffsets[4]} fill="var(--color-rf-accent)" fontSize={10} textAnchor="middle">
           P95: +{stats.p95.toFixed(1)}%
         </text>
 
@@ -326,10 +326,10 @@ export function ReturnDistribution({
           y1={padding.top}
           x2={medianX}
           y2={padding.top + chartHeight}
-          stroke="#E5E7EB"
+          stroke="var(--color-rf-text-secondary)"
           strokeWidth={2}
         />
-        <text x={medianX} y={padding.top - 10 + labelOffsets[2]} fill="#E5E7EB" fontSize={10} textAnchor="middle">
+        <text x={medianX} y={padding.top - 10 + labelOffsets[2]} fill="var(--color-rf-text-secondary)" fontSize={10} textAnchor="middle">
           P50: {stats.median > 0 ? '+' : ''}{stats.median.toFixed(1)}%
         </text>
 
@@ -339,7 +339,7 @@ export function ReturnDistribution({
           y1={padding.top + chartHeight}
           x2={padding.left + chartWidth}
           y2={padding.top + chartHeight}
-          stroke="#4B5563"
+          stroke="var(--color-rf-border)"
           strokeWidth={1}
         />
         {ticks.map((tick) => (
@@ -349,12 +349,12 @@ export function ReturnDistribution({
               y1={padding.top + chartHeight}
               x2={xScale(tick)}
               y2={padding.top + chartHeight + 5}
-              stroke="#4B5563"
+              stroke="var(--color-rf-border)"
             />
             <text
               x={xScale(tick)}
               y={padding.top + chartHeight + 18}
-              fill="#9CA3AF"
+              fill="var(--color-rf-text-muted)"
               fontSize={10}
               textAnchor="middle"
             >
@@ -365,7 +365,7 @@ export function ReturnDistribution({
         <text
           x={padding.left + chartWidth / 2}
           y={height - 15}
-          fill="#9CA3AF"
+          fill="var(--color-rf-text-muted)"
           fontSize={12}
           textAnchor="middle"
         >
@@ -376,7 +376,7 @@ export function ReturnDistribution({
         <text
           x={15}
           y={padding.top + chartHeight / 2}
-          fill="#9CA3AF"
+          fill="var(--color-rf-text-muted)"
           fontSize={12}
           textAnchor="middle"
           transform={`rotate(-90, 15, ${padding.top + chartHeight / 2})`}
@@ -386,38 +386,38 @@ export function ReturnDistribution({
 
         {/* 右侧统计面板（决策三联表） */}
         <g transform={`translate(${width - padding.right + 15}, ${padding.top})`}>
-          <text x={0} y={0} fill="#E5E7EB" fontSize={11} fontWeight="600" letterSpacing="0.05em">
+          <text x={0} y={0} fill="var(--color-rf-text)" fontSize={11} fontWeight="600" letterSpacing="0.05em">
             决策指标
           </text>
 
           {/* 胜率 */}
-          <text x={0} y={26} fill={stats.profitProbability >= 50 ? '#00D4AA' : '#FF4757'} fontSize={16} fontWeight="600">
+          <text x={0} y={26} fill={stats.profitProbability >= 50 ? 'var(--color-rf-accent)' : 'var(--color-rf-chart-3)'} fontSize={16} fontWeight="600">
             胜率 {stats.profitProbability.toFixed(0)}%
           </text>
 
           {/* 中位数收益 P50 */}
-          <text x={0} y={52} fill={stats.median >= 0 ? '#00D4AA' : '#FF4757'} fontSize={12} fontWeight="600">
+          <text x={0} y={52} fill={stats.median >= 0 ? 'var(--color-rf-accent)' : 'var(--color-rf-chart-3)'} fontSize={12} fontWeight="600">
             P50 {stats.median > 0 ? '+' : ''}{stats.median.toFixed(1)}%
           </text>
 
           {/* CVaR95 */}
-          <text x={0} y={78} fill="#FF4757" fontSize={12} fontWeight="600">
+          <text x={0} y={78} fill="var(--color-rf-chart-3)" fontSize={12} fontWeight="600">
             CVaR {stats.cvar95.toFixed(1)}%
           </text>
 
           {/* P95 */}
-          <text x={0} y={104} fill="#00D4AA" fontSize={12} fontWeight="600">
+          <text x={0} y={104} fill="var(--color-rf-accent)" fontSize={12} fontWeight="600">
             P95 +{stats.p95.toFixed(1)}%
           </text>
 
           {/* 盈亏比 */}
-          <text x={0} y={130} fill="#E5E7EB" fontSize={12} fontWeight="600">
+          <text x={0} y={130} fill="var(--color-rf-text)" fontSize={12} fontWeight="600">
             盈亏比 {stats.upDownRatio.toFixed(2)}
           </text>
 
-          <rect x={0} y={148} width={100} height={1} fill="#374151" />
+          <rect x={0} y={148} width={100} height={1} fill="var(--color-rf-border)" />
 
-          <text x={0} y={168} fill="#6B7280" fontSize={9}>
+          <text x={0} y={168} fill="var(--color-rf-text-muted)" fontSize={9}>
             模拟路径: {visiblePaths}/{paths}
           </text>
         </g>
