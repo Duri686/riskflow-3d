@@ -3,6 +3,7 @@ import { Gauge, Settings, ChevronDown, ChevronRight } from "lucide-react";
 import { DataInputPanel } from "@/components/DataInputPanel";
 import { RiskCard } from "./RiskCard";
 import type { useMonteCarloSession } from "@/algorithms/monte-carlo/useSession";
+import type { MonteCarloInput } from "@/algorithms/monte-carlo/engine";
 import { TRADING_DAYS_PER_YEAR } from "@/algorithms/monte-carlo/constants";
 
 interface SidebarProps {
@@ -20,15 +21,16 @@ export function Sidebar({ session }: SidebarProps) {
       sigma: number;
       mu: number;
     }) => {
-      if (data.currentPrice > 0) {
-        updateInput("initialPrice", Math.round(data.currentPrice));
-      }
-      updateMultipleInputs({
+      const updates: Partial<MonteCarloInput> = {
         volatility: Math.min(2, Math.max(0.05, data.sigma)),
         drift: Math.min(0.3, Math.max(-0.3, data.mu)),
-      });
+      };
+      if (data.currentPrice > 0) {
+        updates.initialPrice = Math.round(data.currentPrice);
+      }
+      updateMultipleInputs(updates);
     },
-    [updateInput, updateMultipleInputs],
+    [updateMultipleInputs],
   );
 
   return (
