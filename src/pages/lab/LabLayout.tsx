@@ -13,10 +13,11 @@ import {
 	DEFAULT_ALGORITHM_ID,
 	getAlgorithmMeta,
 	isAlgorithmId,
-} from "../../algorithms/registry";
-import { MaterialIcon, RiskFlowLogo } from "../../components/Logo";
+} from "@/algorithms/registry";
+import { MaterialIcon, RiskFlowLogo } from "@/components/Logo";
 import { KalmanWorkspace } from "./KalmanWorkspace";
 import { MonteCarloWorkspace } from "./MonteCarloWorkspace";
+import { BlackScholesWorkspace } from "./BlackScholesWorkspace";
 
 /** 按 activeId 渲染对应 Workspace */
 function WorkspaceContent({
@@ -33,6 +34,9 @@ function WorkspaceContent({
 	}
 	if (activeId === "kalman-filter") {
 		return <KalmanWorkspace onSidebar={onSidebar} onActions={onActions} />;
+	}
+	if (activeId === "black-scholes") {
+		return <BlackScholesWorkspace onSidebar={onSidebar} onActions={onActions} />;
 	}
 
 	// WIP Fallback

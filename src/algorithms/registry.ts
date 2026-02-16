@@ -29,7 +29,7 @@ export const ALGORITHM_CATALOG: AlgorithmMeta[] = [
 		title: "Black-Scholes",
 		subtitle: "定价曲面与 Greeks",
 		description: "旋转期权定价曲面，拖动波动率与到期日，感受 Greeks 如何联动变化。",
-		status: "wip",
+		status: "ready",
 		tags: ["期权", "Greeks", "曲面"],
 	},
 	{
