@@ -141,7 +141,7 @@ export function ReturnDistribution({
 
   const width = 800
   const height = 400
-  const padding = { top: 50, right: 130, bottom: 60, left: 60 }
+  const padding = { top: 70, right: 130, bottom: 60, left: 60 }
   const chartWidth = width - padding.left - padding.right
   const chartHeight = height - padding.top - padding.bottom
 
@@ -180,6 +180,8 @@ export function ReturnDistribution({
     { x: p95X, label: 'p95' },
   ]
   const labelOffsets = resolveLabels(labelPositions)
+  /** 标签 y 坐标：基于 padding.top 向上偏移，并 clamp 防止超出 viewBox */
+  const labelY = (idx: number) => Math.max(12, padding.top - 10 + labelOffsets[idx])
 
   // 动态生成 ticks (5个)
   const generateTicks = (min: number, max: number) => {
@@ -274,7 +276,7 @@ export function ReturnDistribution({
           strokeWidth={2}
           strokeDasharray="4,4"
         />
-        <text x={zeroX} y={padding.top - 10 + labelOffsets[3]} fill="var(--color-rf-text)" fontSize={11} textAnchor="middle">
+        <text x={zeroX} y={labelY(3)} fill="var(--color-rf-text)" fontSize={11} textAnchor="middle">
           盈亏平衡
         </text>
 
@@ -288,7 +290,7 @@ export function ReturnDistribution({
           strokeWidth={1.5}
           strokeDasharray="3,3"
         />
-        <text x={cvar95X} y={padding.top - 10 + labelOffsets[0]} fill="var(--color-rf-chart-3)" fontSize={10} textAnchor="middle">
+        <text x={cvar95X} y={labelY(0)} fill="var(--color-rf-chart-3)" fontSize={10} textAnchor="middle">
           CVaR95: {stats.cvar95.toFixed(1)}%
         </text>
 
@@ -302,7 +304,7 @@ export function ReturnDistribution({
           strokeWidth={2}
           filter="url(#glow)"
         />
-        <text x={p05X} y={padding.top - 10 + labelOffsets[1]} fill="var(--color-rf-chart-3)" fontSize={10} textAnchor="middle">
+        <text x={p05X} y={labelY(1)} fill="var(--color-rf-chart-3)" fontSize={10} textAnchor="middle">
           P5: {stats.p05.toFixed(1)}%
         </text>
 
@@ -316,7 +318,7 @@ export function ReturnDistribution({
           strokeWidth={1.5}
           strokeDasharray="3,3"
         />
-        <text x={p95X} y={padding.top - 10 + labelOffsets[4]} fill="var(--color-rf-accent)" fontSize={10} textAnchor="middle">
+        <text x={p95X} y={labelY(4)} fill="var(--color-rf-accent)" fontSize={10} textAnchor="middle">
           P95: +{stats.p95.toFixed(1)}%
         </text>
 
@@ -329,7 +331,7 @@ export function ReturnDistribution({
           stroke="var(--color-rf-text-secondary)"
           strokeWidth={2}
         />
-        <text x={medianX} y={padding.top - 10 + labelOffsets[2]} fill="var(--color-rf-text-secondary)" fontSize={10} textAnchor="middle">
+        <text x={medianX} y={labelY(2)} fill="var(--color-rf-text-secondary)" fontSize={10} textAnchor="middle">
           P50: {stats.median > 0 ? '+' : ''}{stats.median.toFixed(1)}%
         </text>
 
