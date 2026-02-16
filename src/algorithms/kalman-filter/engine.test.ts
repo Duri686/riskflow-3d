@@ -21,7 +21,6 @@ import {
   defaultKalmanInput,
   KALMAN_PRESETS,
   type KalmanFilterInput,
-  type KalmanFilterResult,
 } from './engine'
 import { TRADING_DAYS_PER_YEAR } from '../shared/constants'
 
@@ -402,7 +401,7 @@ describe('T13. annualizedVol 公式验证', () => {
 
 describe('T14. 预设参数合法性', () => {
   it('所有预设的 Q 和 R 都 > 0', () => {
-    for (const [name, preset] of Object.entries(KALMAN_PRESETS)) {
+    for (const [, preset] of Object.entries(KALMAN_PRESETS)) {
       expect(preset.Q).toBeGreaterThan(0)
       expect(preset.R).toBeGreaterThan(0)
       expect(preset.label.length).toBeGreaterThan(0)
