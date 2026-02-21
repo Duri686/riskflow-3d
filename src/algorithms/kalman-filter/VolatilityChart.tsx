@@ -5,6 +5,7 @@ import { TRADING_DAYS_PER_YEAR } from "../shared/constants";
 interface VolatilityChartProps {
 	result: KalmanFilterResult;
 	dailyReturns: number[];
+	isBootstrapping?: boolean;
 }
 
 // ── 布局常量（去掉右侧面板后，右边距大幅缩小） ──
@@ -28,6 +29,7 @@ const PHASE_COLORS: Record<string, string> = {
 export function VolatilityChart({
 	result,
 	dailyReturns,
+	isBootstrapping = false,
 }: VolatilityChartProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [size, setSize] = useState({ width: 800, height: 400 });
@@ -192,9 +194,21 @@ export function VolatilityChart({
 				ref={containerRef}
 				className="flex h-full w-full items-center justify-center"
 			>
-				<p className="font-mono text-sm text-gray-500">
-					获取数据后显示波动率估计
-				</p>
+				{isBootstrapping ? (
+					<div className="flex flex-col items-center gap-3">
+						<div className="relative h-8 w-8">
+							<div className="absolute inset-0 rounded-full border border-rf-accent/30" />
+							<div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-rf-accent border-r-rf-accent" />
+						</div>
+						<p className="font-mono text-xs text-gray-400">
+							正在拉取日线数据并初始化滤波器...
+						</p>
+					</div>
+				) : (
+					<p className="font-mono text-sm text-gray-500">
+						获取数据后显示波动率估计
+					</p>
+				)}
 			</div>
 		);
 	}

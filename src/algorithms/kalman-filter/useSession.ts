@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	defaultKalmanInput,
 	KALMAN_PRESETS,
@@ -9,15 +9,18 @@ import {
 	runKalmanFilter,
 } from "./engine";
 import type { AssetMeta } from "./snapshot";
+import { resolveKalmanBootstrapData } from "./bootstrapData";
 
 export function useKalmanSession() {
 	const [input, setInput] = useState<KalmanFilterInput>(defaultKalmanInput);
 	const [preset, setPreset] = useState<KalmanPreset>("balanced");
 	const [dailyReturns, setDailyReturns] = useState<number[]>([]);
+	const [bootstrapAttempted, setBootstrapAttempted] = useState(false);
 	const [assetMeta, setAssetMeta] = useState<AssetMeta>({
 		symbol: "BTCUSDT",
 		lookbackDays: 365,
 	});
+	const isBootstrapping = dailyReturns.length < 2 && !bootstrapAttempted;
 
 	/** 滤波结果（输入或参数变化时自动重算） */
 	const result = useMemo<KalmanFilterResult>(() => {
@@ -87,6 +90,7 @@ export function useKalmanSession() {
 	/** 从收盘价序列设置日收益率 + 资产元数据 */
 	const setClosesData = useCallback(
 		(closes: number[], meta?: { symbol: string; lookbackDays: number }) => {
+			setBootstrapAttempted(true);
 			if (meta) {
 				setAssetMeta(meta);
 			}
@@ -106,12 +110,52 @@ export function useKalmanSession() {
 		[],
 	);
 
+	/** 初始化：进入 Kalman 模块后主动拉取币安 1 年日线，失败时回退本地 BTC JSON */
+	useEffect(() => {
+		if (dailyReturns.length >= 2 || bootstrapAttempted) {
+			return;
+		}
+
+		let cancelled = false;
+
+		void resolveKalmanBootstrapData(assetMeta.symbol, assetMeta.lookbackDays)
+			.then((bootstrapped) => {
+				if (cancelled) {
+					return;
+				}
+				setClosesData(bootstrapped.closes, {
+					symbol: bootstrapped.symbol,
+					lookbackDays: bootstrapped.lookbackDays,
+				});
+			})
+			.catch((error) => {
+				console.warn(
+					"[Kalman] bootstrap data load failed:",
+					error instanceof Error ? error.message : error,
+				);
+				if (!cancelled) {
+					setBootstrapAttempted(true);
+				}
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [
+		bootstrapAttempted,
+		dailyReturns.length,
+		setClosesData,
+		assetMeta.symbol,
+		assetMeta.lookbackDays,
+	]);
+
 	return useMemo(
 		() => ({
 			input,
 			preset,
 			result,
 			dailyReturns,
+			isBootstrapping,
 			assetMeta,
 			applyPreset,
 			updateInput,
@@ -124,6 +168,7 @@ export function useKalmanSession() {
 			preset,
 			result,
 			dailyReturns,
+			isBootstrapping,
 			assetMeta,
 			applyPreset,
 			updateInput,

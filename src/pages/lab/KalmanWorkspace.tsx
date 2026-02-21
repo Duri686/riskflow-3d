@@ -28,6 +28,7 @@ export function KalmanWorkspace({ onSidebar, onActions }: KalmanWorkspaceProps) 
         <VolatilityChart
           result={kalman.result}
           dailyReturns={kalman.dailyReturns}
+          isBootstrapping={kalman.isBootstrapping}
         />
       </div>
     </div>
