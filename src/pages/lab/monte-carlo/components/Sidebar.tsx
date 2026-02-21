@@ -3,7 +3,6 @@ import { Gauge, Settings, ChevronDown, ChevronRight } from "lucide-react";
 import { DataInputPanel } from "@/components/DataInputPanel";
 import { RiskCard } from "./RiskCard";
 import type { useMonteCarloSession } from "@/algorithms/monte-carlo/useSession";
-import type { MonteCarloInput } from "@/algorithms/monte-carlo/engine";
 import { TRADING_DAYS_PER_YEAR } from "@/algorithms/shared/constants";
 
 interface SidebarProps {
@@ -13,24 +12,27 @@ interface SidebarProps {
 export function Sidebar({ session }: SidebarProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showSigmaMuSliders, setShowSigmaMuSliders] = useState(false);
-  const { input, updateInput, updateMultipleInputs, metrics } = session;
+  const { input, updateInput, updateMultipleInputs, metrics, applyMarketData } = session;
 
   const handleDataLoaded = useCallback(
     (data: {
+      closes: number[];
+      symbol: string;
+      lookbackDays: number;
+      latestDataDate?: string | null;
       currentPrice: number;
       sigma: number;
       mu: number;
     }) => {
-      const updates: Partial<MonteCarloInput> = {
-        volatility: Math.min(2, Math.max(0.05, data.sigma)),
-        drift: Math.min(0.3, Math.max(-0.3, data.mu)),
-      };
-      if (data.currentPrice > 0) {
-        updates.initialPrice = Math.round(data.currentPrice);
-      }
-      updateMultipleInputs(updates);
+      applyMarketData({
+        closes: data.closes,
+        symbol: data.symbol,
+        lookbackDays: data.lookbackDays,
+        latestDataDate: data.latestDataDate,
+        source: "manual",
+      });
     },
-    [updateMultipleInputs],
+    [applyMarketData],
   );
 
   return (

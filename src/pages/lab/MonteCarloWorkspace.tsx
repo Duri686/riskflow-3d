@@ -18,6 +18,7 @@ export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspac
     metrics,
     terminalPrices,
     isPlaying,
+    marketDataMeta,
     togglePlaying,
     resimulate,
     updateInput,
@@ -63,6 +64,7 @@ export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspac
             terminalPrices={terminalPrices}
             initialPrice={input.initialPrice}
             paths={input.paths}
+            latestDataDate={marketDataMeta.latestDataDate}
             visiblePaths={Math.ceil(
               metrics.progress * input.paths,
             )}

@@ -52,7 +52,7 @@ export async function fetchBinanceKlines(
   symbol = 'BTCUSDT',
   interval = '1d',
   limit = 365,
-): Promise<{ closes: number[]; currentPrice: number }> {
+): Promise<{ closes: number[]; currentPrice: number; latestCloseTime: number | null }> {
   const url = `${BINANCE_API}?symbol=${symbol}&interval=${interval}&limit=${limit}`
   const response = await fetch(url)
 
@@ -66,8 +66,21 @@ export async function fetchBinanceKlines(
   // close 在 index 4
   const closes = data.map((kline) => Number(kline[4]))
   const currentPrice = closes.length > 0 ? closes[closes.length - 1] : 0
+  const lastKline = data.length > 0 ? data[data.length - 1] : null
+  const latestCloseTimeCandidate = lastKline ? Number(lastKline[6] ?? lastKline[0]) : NaN
+  const latestCloseTime = Number.isFinite(latestCloseTimeCandidate) && latestCloseTimeCandidate > 0
+    ? latestCloseTimeCandidate
+    : null
 
-  return { closes, currentPrice }
+  return { closes, currentPrice, latestCloseTime }
+}
+
+export function formatDataDate(timestamp: number | null | undefined): string | null {
+  if (timestamp === null || timestamp === undefined || !Number.isFinite(timestamp)) {
+    return null
+  }
+
+  return new Date(timestamp).toISOString().slice(0, 10)
 }
 
 /**

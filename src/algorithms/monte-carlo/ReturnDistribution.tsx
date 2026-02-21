@@ -5,6 +5,7 @@ interface ReturnDistributionProps {
   initialPrice: number
   paths: number
   visiblePaths: number
+  latestDataDate?: string | null
 }
 
 interface DistributionData {
@@ -131,6 +132,7 @@ export function ReturnDistribution({
   initialPrice,
   paths,
   visiblePaths,
+  latestDataDate = null,
 }: ReturnDistributionProps) {
   const data = useMemo(() => {
     const visiblePrices = terminalPrices.slice(0, Math.max(1, visiblePaths))
@@ -385,6 +387,18 @@ export function ReturnDistribution({
         >
           概率密度
         </text>
+
+        {latestDataDate && (
+          <text
+            x={padding.left}
+            y={24}
+            fill="var(--color-rf-text-muted)"
+            fontSize={10}
+            textAnchor="start"
+          >
+            最新数据日期: {latestDataDate}
+          </text>
+        )}
 
         {/* 右侧统计面板（决策三联表） */}
         <g transform={`translate(${width - padding.right + 15}, ${padding.top})`}>

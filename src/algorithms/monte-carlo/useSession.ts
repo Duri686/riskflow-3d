@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { calculateSeriesParams } from "@/algorithms/shared/fetchKlines";
 import {
 	defaultMonteCarloInput,
 	type MonteCarloInput,
@@ -7,12 +8,30 @@ import {
 	type MonteCarloState,
 	monteCarloEngine,
 } from "./engine";
+import {
+	resolveMonteCarloBootstrapData,
+	type MonteCarloBootstrapSource,
+} from "./bootstrapData";
 
 export interface MonteCarloSessionSnapshot {
 	input: MonteCarloInput;
 	state: MonteCarloState;
 	isPlaying: boolean;
 }
+
+export interface MonteCarloMarketDataMeta {
+	symbol: string;
+	lookbackDays: number;
+	source: MonteCarloBootstrapSource | "manual" | "default";
+	latestDataDate: string | null;
+}
+
+const DEFAULT_MARKET_DATA_META: MonteCarloMarketDataMeta = {
+	symbol: "BTCUSDT",
+	lookbackDays: 365,
+	source: "default",
+	latestDataDate: null,
+};
 
 const createInitialState = (input: MonteCarloInput): MonteCarloState =>
 	monteCarloEngine.createInitialState(input);
@@ -34,6 +53,11 @@ export function useMonteCarloSession() {
 		createInitialState(defaultMonteCarloInput),
 	);
 	const [isPlaying, setIsPlaying] = useState(true);
+	const [bootstrapAttempted, setBootstrapAttempted] = useState(false);
+	const [marketDataMeta, setMarketDataMeta] = useState<MonteCarloMarketDataMeta>(
+		DEFAULT_MARKET_DATA_META,
+	);
+	const isBootstrapping = !bootstrapAttempted;
 
 	const animationFrameRef = useRef<number | null>(null);
 	const lastTimeRef = useRef<number | null>(null);
@@ -187,11 +211,97 @@ export function useMonteCarloSession() {
 		restartWithInput(defaultMonteCarloInput, true);
 	}, [restartWithInput]);
 
+	const applyMarketData = useCallback(
+		(data: {
+			closes: number[];
+			symbol: string;
+			lookbackDays: number;
+			latestDataDate?: string | null;
+			source?: MonteCarloMarketDataMeta["source"];
+		}) => {
+			setBootstrapAttempted(true);
+
+			setMarketDataMeta({
+				symbol: data.symbol,
+				lookbackDays: data.lookbackDays,
+				source: data.source ?? "manual",
+				latestDataDate: data.latestDataDate ?? null,
+			});
+
+			if (data.closes.length < 2) {
+				return;
+			}
+
+			const { sigma, mu } = calculateSeriesParams(data.closes);
+			const latestClose = data.closes[data.closes.length - 1];
+
+			const updates: Partial<MonteCarloInput> = {
+				volatility: Math.min(2, Math.max(0.05, sigma)),
+				drift: Math.min(0.3, Math.max(-0.3, mu)),
+			};
+
+			if (Number.isFinite(latestClose) && latestClose > 0) {
+				updates.initialPrice = Math.round(latestClose);
+			}
+
+			restartWithInput(
+				{
+					...inputRef.current,
+					...updates,
+				},
+				true,
+			);
+		},
+		[restartWithInput],
+	);
+
+	useEffect(() => {
+		if (bootstrapAttempted) {
+			return;
+		}
+
+		let cancelled = false;
+
+		void resolveMonteCarloBootstrapData(
+			marketDataMeta.symbol,
+			marketDataMeta.lookbackDays,
+		)
+			.then((bootstrapped) => {
+				if (cancelled) {
+					return;
+				}
+				applyMarketData({
+					...bootstrapped,
+					source: bootstrapped.source,
+				});
+			})
+			.catch((error) => {
+				console.warn(
+					"[MonteCarlo] bootstrap data load failed:",
+					error instanceof Error ? error.message : error,
+				);
+				if (!cancelled) {
+					setBootstrapAttempted(true);
+				}
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [
+		bootstrapAttempted,
+		applyMarketData,
+		marketDataMeta.symbol,
+		marketDataMeta.lookbackDays,
+	]);
+
 	return useMemo(
 		() => ({
 			input,
 			state,
 			isPlaying,
+			isBootstrapping,
+			marketDataMeta,
 			renderLayer,
 			metrics,
 			terminalPrices: state.cloud.terminalPrices,
@@ -202,11 +312,14 @@ export function useMonteCarloSession() {
 			resetDefaults,
 			restoreSession,
 			getSnapshot,
+			applyMarketData,
 		}),
 		[
 			input,
 			state,
 			isPlaying,
+			isBootstrapping,
+			marketDataMeta,
 			renderLayer,
 			metrics,
 			updateInput,
@@ -216,6 +329,7 @@ export function useMonteCarloSession() {
 			resetDefaults,
 			restoreSession,
 			getSnapshot,
+			applyMarketData,
 		],
 	);
 }

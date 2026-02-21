@@ -6,6 +6,7 @@ import {
 import {
   fetchBinanceKlines,
   calculateSeriesParams,
+  formatDataDate,
   SYMBOL_OPTIONS,
   PERIOD_OPTIONS,
 } from '../algorithms/shared/fetchKlines'
@@ -23,6 +24,8 @@ interface DataInputPanelProps {
     symbol: string
     /** 用户选择的回溯天数 */
     lookbackDays: number
+    /** 最新一条日线日期（YYYY-MM-DD） */
+    latestDataDate?: string | null
   }) => void
 }
 
@@ -44,19 +47,29 @@ export function DataInputPanel({ onDataLoaded }: DataInputPanelProps) {
     count: number
   } | null>(null)
 
-  const processCloses = useCallback((closes: number[], currentPrice: number) => {
+  const processCloses = useCallback((closes: number[], currentPrice: number, latestDataDate?: string | null) => {
     if (closes.length < 2) return
     const { sigma, mu, dailyReturns } = calculateSeriesParams(closes)
     setDataStatus({ hasSeries: true, sigma, mu, count: closes.length })
-    onDataLoaded({ closes, currentPrice, sigma, mu, dailyReturns, count: closes.length, symbol, lookbackDays: fetchPeriod })
+    onDataLoaded({
+      closes,
+      currentPrice,
+      sigma,
+      mu,
+      dailyReturns,
+      count: closes.length,
+      symbol,
+      lookbackDays: fetchPeriod,
+      latestDataDate,
+    })
   }, [onDataLoaded, symbol, fetchPeriod])
 
   const handleFetchKlines = useCallback(async () => {
     setIsFetching(true)
     setFetchError(null)
     try {
-      const { closes, currentPrice } = await fetchBinanceKlines(symbol, '1d', fetchPeriod)
-      processCloses(closes, currentPrice)
+      const { closes, currentPrice, latestCloseTime } = await fetchBinanceKlines(symbol, '1d', fetchPeriod)
+      processCloses(closes, currentPrice, formatDataDate(latestCloseTime))
     } catch (err) {
       setFetchError(err instanceof Error ? err.message : '获取失败')
     } finally {
@@ -72,7 +85,7 @@ export function DataInputPanel({ onDataLoaded }: DataInputPanelProps) {
       .map((t) => Number(t))
       .filter((n) => Number.isFinite(n) && n > 0)
     if (tokens.length >= 2) {
-      processCloses(tokens, tokens[tokens.length - 1])
+      processCloses(tokens, tokens[tokens.length - 1], null)
     }
   }, [processCloses])
 
