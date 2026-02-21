@@ -9,6 +9,8 @@ const BINANCE_API = import.meta.env.DEV
   ? '/binance-api/klines'
   : 'https://api.binance.com/api/v3/klines'
 
+const BINANCE_MAX_LIMIT = 1000
+
 /** 市值前 20 交易对（排除稳定币） */
 export const SYMBOL_OPTIONS = [
   { value: 'BTCUSDT', label: 'BTC/USDT' },
@@ -39,7 +41,85 @@ export const PERIOD_OPTIONS = [
   { value: 180, label: '180 天' },
   { value: 365, label: '1 年' },
   { value: 730, label: '2 年' },
+  { value: 1095, label: '3 年' },
+  { value: 1460, label: '4 年' },
+  { value: 1825, label: '5 年' },
 ] as const
+
+const buildKlineUrl = (
+  symbol: string,
+  interval: string,
+  limit: number,
+  endTime?: number,
+): string => {
+  const params = new URLSearchParams({
+    symbol,
+    interval,
+    limit: String(limit),
+  })
+
+  if (endTime !== undefined) {
+    params.set('endTime', String(endTime))
+  }
+
+  return `${BINANCE_API}?${params.toString()}`
+}
+
+const fetchKlineBatch = async (
+  symbol: string,
+  interval: string,
+  limit: number,
+  endTime?: number,
+): Promise<unknown[][]> => {
+  const url = buildKlineUrl(symbol, interval, limit, endTime)
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    throw new Error(`币安 API 请求失败: ${response.status} ${response.statusText}`)
+  }
+
+  return response.json()
+}
+
+const fetchKlineSeries = async (
+  symbol: string,
+  interval: string,
+  limit: number,
+): Promise<unknown[][]> => {
+  const safeLimit = Math.max(2, Math.floor(limit))
+
+  if (safeLimit <= BINANCE_MAX_LIMIT) {
+    return fetchKlineBatch(symbol, interval, safeLimit)
+  }
+
+  const rows: unknown[][] = []
+  let remaining = safeLimit
+  let endTime: number | undefined
+
+  while (remaining > 0) {
+    const batchSize = Math.min(BINANCE_MAX_LIMIT, remaining)
+    const batch = await fetchKlineBatch(symbol, interval, batchSize, endTime)
+    if (batch.length === 0) {
+      break
+    }
+
+    rows.unshift(...batch)
+    remaining -= batch.length
+
+    const oldestOpenTime = Number(batch[0]?.[0])
+    if (!Number.isFinite(oldestOpenTime) || batch.length < batchSize) {
+      break
+    }
+
+    endTime = oldestOpenTime - 1
+  }
+
+  if (rows.length <= safeLimit) {
+    return rows
+  }
+
+  return rows.slice(rows.length - safeLimit)
+}
 
 /**
  * 从币安获取日线收盘价
@@ -53,14 +133,7 @@ export async function fetchBinanceKlines(
   interval = '1d',
   limit = 365,
 ): Promise<{ closes: number[]; currentPrice: number; latestCloseTime: number | null }> {
-  const url = `${BINANCE_API}?symbol=${symbol}&interval=${interval}&limit=${limit}`
-  const response = await fetch(url)
-
-  if (!response.ok) {
-    throw new Error(`币安 API 请求失败: ${response.status} ${response.statusText}`)
-  }
-
-  const data: unknown[][] = await response.json()
+  const data = await fetchKlineSeries(symbol, interval, limit)
 
   // 币安 K 线格式: [openTime, open, high, low, close, volume, ...]
   // close 在 index 4

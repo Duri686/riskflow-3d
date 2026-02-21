@@ -4,6 +4,7 @@ import { DataInputPanel } from "@/components/DataInputPanel";
 import { RiskCard } from "./RiskCard";
 import type { useMonteCarloSession } from "@/algorithms/monte-carlo/useSession";
 import { TRADING_DAYS_PER_YEAR } from "@/algorithms/shared/constants";
+import { formatMonteCarloDataSource } from "@/algorithms/monte-carlo/viewMeta";
 
 interface SidebarProps {
   session: ReturnType<typeof useMonteCarloSession>;
@@ -12,7 +13,8 @@ interface SidebarProps {
 export function Sidebar({ session }: SidebarProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showSigmaMuSliders, setShowSigmaMuSliders] = useState(false);
-  const { input, updateInput, updateMultipleInputs, metrics, applyMarketData } = session;
+  const { input, updateInput, updateMultipleInputs, metrics, applyMarketData, marketDataMeta } = session;
+  const sourceLabel = formatMonteCarloDataSource(marketDataMeta.source).replace("数据来源: ", "");
 
   const handleDataLoaded = useCallback(
     (data: {
@@ -119,7 +121,7 @@ export function Sidebar({ session }: SidebarProps) {
               onClick={() => setShowSigmaMuSliders(!showSigmaMuSliders)}
               className="flex w-full items-center justify-between bg-transparent font-mono text-[10px] text-text-muted"
             >
-              <span className="font-bold">参数来源: 默认值</span>
+              <span className="font-bold">参数来源: {sourceLabel}</span>
               <span className="flex items-center gap-0.5 text-accent-purple">
                 自定义{" "}
                 {showSigmaMuSliders ? (

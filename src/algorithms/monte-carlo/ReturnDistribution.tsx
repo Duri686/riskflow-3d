@@ -6,6 +6,8 @@ interface ReturnDistributionProps {
   paths: number
   visiblePaths: number
   latestDataDate?: string | null
+  showLatestDataDate?: boolean
+  showDecisionPanel?: boolean
 }
 
 interface DistributionData {
@@ -133,6 +135,8 @@ export function ReturnDistribution({
   paths,
   visiblePaths,
   latestDataDate = null,
+  showLatestDataDate = true,
+  showDecisionPanel = true,
 }: ReturnDistributionProps) {
   const data = useMemo(() => {
     const visiblePrices = terminalPrices.slice(0, Math.max(1, visiblePaths))
@@ -143,7 +147,12 @@ export function ReturnDistribution({
 
   const width = 800
   const height = 400
-  const padding = { top: 70, right: 130, bottom: 60, left: 60 }
+  const padding = {
+    top: showLatestDataDate ? 70 : 58,
+    right: showDecisionPanel ? 130 : 28,
+    bottom: 60,
+    left: 60,
+  }
   const chartWidth = width - padding.left - padding.right
   const chartHeight = height - padding.top - padding.bottom
 
@@ -388,7 +397,7 @@ export function ReturnDistribution({
           概率密度
         </text>
 
-        {latestDataDate && (
+        {showLatestDataDate && latestDataDate && (
           <text
             x={padding.left}
             y={24}
@@ -400,43 +409,44 @@ export function ReturnDistribution({
           </text>
         )}
 
-        {/* 右侧统计面板（决策三联表） */}
-        <g transform={`translate(${width - padding.right + 15}, ${padding.top})`}>
-          <text x={0} y={0} fill="var(--color-rf-text)" fontSize={11} fontWeight="600" letterSpacing="0.05em">
-            决策指标
-          </text>
+        {showDecisionPanel && (
+          <g transform={`translate(${width - padding.right + 15}, ${padding.top})`}>
+            <text x={0} y={0} fill="var(--color-rf-text)" fontSize={11} fontWeight="600" letterSpacing="0.05em">
+              决策指标
+            </text>
 
-          {/* 胜率 */}
-          <text x={0} y={26} fill={stats.profitProbability >= 50 ? 'var(--color-rf-accent)' : 'var(--color-rf-chart-3)'} fontSize={16} fontWeight="600">
-            胜率 {stats.profitProbability.toFixed(0)}%
-          </text>
+            {/* 胜率 */}
+            <text x={0} y={26} fill={stats.profitProbability >= 50 ? 'var(--color-rf-accent)' : 'var(--color-rf-chart-3)'} fontSize={16} fontWeight="600">
+              胜率 {stats.profitProbability.toFixed(0)}%
+            </text>
 
-          {/* 中位数收益 P50 */}
-          <text x={0} y={52} fill={stats.median >= 0 ? 'var(--color-rf-accent)' : 'var(--color-rf-chart-3)'} fontSize={12} fontWeight="600">
-            P50 {stats.median > 0 ? '+' : ''}{stats.median.toFixed(1)}%
-          </text>
+            {/* 中位数收益 P50 */}
+            <text x={0} y={52} fill={stats.median >= 0 ? 'var(--color-rf-accent)' : 'var(--color-rf-chart-3)'} fontSize={12} fontWeight="600">
+              P50 {stats.median > 0 ? '+' : ''}{stats.median.toFixed(1)}%
+            </text>
 
-          {/* CVaR95 */}
-          <text x={0} y={78} fill="var(--color-rf-chart-3)" fontSize={12} fontWeight="600">
-            CVaR {stats.cvar95.toFixed(1)}%
-          </text>
+            {/* CVaR95 */}
+            <text x={0} y={78} fill="var(--color-rf-chart-3)" fontSize={12} fontWeight="600">
+              CVaR {stats.cvar95.toFixed(1)}%
+            </text>
 
-          {/* P95 */}
-          <text x={0} y={104} fill="var(--color-rf-accent)" fontSize={12} fontWeight="600">
-            P95 +{stats.p95.toFixed(1)}%
-          </text>
+            {/* P95 */}
+            <text x={0} y={104} fill="var(--color-rf-accent)" fontSize={12} fontWeight="600">
+              P95 +{stats.p95.toFixed(1)}%
+            </text>
 
-          {/* 盈亏比 */}
-          <text x={0} y={130} fill="var(--color-rf-text)" fontSize={12} fontWeight="600">
-            盈亏比 {stats.upDownRatio.toFixed(2)}
-          </text>
+            {/* 盈亏比 */}
+            <text x={0} y={130} fill="var(--color-rf-text)" fontSize={12} fontWeight="600">
+              盈亏比 {stats.upDownRatio.toFixed(2)}
+            </text>
 
-          <rect x={0} y={148} width={100} height={1} fill="var(--color-rf-border)" />
+            <rect x={0} y={148} width={100} height={1} fill="var(--color-rf-border)" />
 
-          <text x={0} y={168} fill="var(--color-rf-text-muted)" fontSize={9}>
-            模拟路径: {visiblePaths}/{paths}
-          </text>
-        </g>
+            <text x={0} y={168} fill="var(--color-rf-text-muted)" fontSize={9}>
+              模拟路径: {visiblePaths}/{paths}
+            </text>
+          </g>
+        )}
       </svg>
     </div>
   )
