@@ -18,6 +18,7 @@ import { MaterialIcon, RiskFlowLogo } from "@/components/Logo";
 import { KalmanWorkspace } from "./KalmanWorkspace";
 import { MonteCarloWorkspace } from "./MonteCarloWorkspace";
 import { BlackScholesWorkspace } from "./BlackScholesWorkspace";
+import { MarkowitzWorkspace } from "./MarkowitzWorkspace";
 
 /** 按 activeId 渲染对应 Workspace */
 function WorkspaceContent({
@@ -37,6 +38,9 @@ function WorkspaceContent({
 	}
 	if (activeId === "black-scholes") {
 		return <BlackScholesWorkspace onSidebar={onSidebar} onActions={onActions} />;
+	}
+	if (activeId === "markowitz") {
+		return <MarkowitzWorkspace onSidebar={onSidebar} onActions={onActions} />;
 	}
 
 	// WIP Fallback

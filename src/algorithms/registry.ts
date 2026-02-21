@@ -37,7 +37,7 @@ export const ALGORITHM_CATALOG: AlgorithmMeta[] = [
 		title: "Markowitz",
 		subtitle: "组合优化与有效前沿",
 		description: "拖动资产权重，观察有效前沿如何弯曲，理解分散化降低风险的原理。",
-		status: "wip",
+		status: "ready",
 		tags: ["组合", "Sharpe", "前沿"],
 	},
 	{

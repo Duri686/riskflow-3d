@@ -27,13 +27,12 @@ export const INITIAL_PARAMS: BSParams = {
 	type: "call",
 };
 
+export const S_RANGE = { min: 50, max: 150, steps: 50 } as const;
+export const T_RANGE = { min: 0.01, max: 1.0, steps: 50 } as const;
+
 export function useBSSession() {
 	const [params, setParams] = useState<BSParams>(INITIAL_PARAMS);
 	const [activeMetric, setActiveMetric] = useState<MetricType>("price");
-
-	// Range for surface visualization
-	const S_RANGE = { min: 50, max: 150, steps: 50 };
-	const T_RANGE = { min: 0.01, max: 1.0, steps: 50 };
 
 	/** 
 	 * Calculate current result based on exact slider values 

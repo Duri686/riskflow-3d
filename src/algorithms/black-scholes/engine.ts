@@ -32,7 +32,7 @@ export function cnd(x: number): number {
 	const a5 = 1.330274429;
 	const L = Math.abs(x);
 	const K = 1.0 / (1.0 + 0.2316419 * L);
-	let result = 1.0 - (1.0 / Math.sqrt(2 * Math.PI)) * Math.exp(-L * L / 2.0) * (a1 * K + a2 * K * K + a3 * Math.pow(K, 3) + a4 * Math.pow(K, 4) + a5 * Math.pow(K, 5));
+	const result = 1.0 - (1.0 / Math.sqrt(2 * Math.PI)) * Math.exp(-L * L / 2.0) * (a1 * K + a2 * K * K + a3 * Math.pow(K, 3) + a4 * Math.pow(K, 4) + a5 * Math.pow(K, 5));
 
 	return x >= 0 ? result : 1.0 - result;
 }

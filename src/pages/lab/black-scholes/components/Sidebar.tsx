@@ -1,4 +1,5 @@
-import type { useBSSession } from "@/algorithms/black-scholes/useSession";
+import type { OptionType } from "@/algorithms/black-scholes/engine";
+import type { MetricType, useBSSession } from "@/algorithms/black-scholes/useSession";
 import { MaterialIcon } from "@/components/Logo";
 
 interface SidebarProps {
@@ -8,7 +9,7 @@ interface SidebarProps {
 export function Sidebar({ session }: SidebarProps) {
 	const { params, updateParams, activeMetric, setActiveMetric, S_RANGE, T_RANGE } = session;
 
-	const metrics: { id: string; label: string }[] = [
+	const metrics: { id: MetricType; label: string }[] = [
 		{ id: "price", label: "Price" },
 		{ id: "delta", label: "Delta" },
 		{ id: "gamma", label: "Gamma" },
@@ -16,6 +17,7 @@ export function Sidebar({ session }: SidebarProps) {
 		{ id: "theta", label: "Theta" },
 		{ id: "rho", label: "Rho" },
 	];
+	const optionTypes: OptionType[] = ["call", "put"];
 
 	return (
 		<div className="flex flex-col gap-6 p-4">
@@ -30,7 +32,7 @@ export function Sidebar({ session }: SidebarProps) {
 						<button
 							key={m.id}
 							type="button"
-							onClick={() => setActiveMetric(m.id as any)}
+							onClick={() => setActiveMetric(m.id)}
 							className={`h-9 rounded-lg border text-xs font-bold transition-all ${
 								activeMetric === m.id
 									? "border-rf-primary bg-rf-primary/20 text-rf-primary shadow-[0_0_15px_rgba(139,92,246,0.3)]"
@@ -50,11 +52,11 @@ export function Sidebar({ session }: SidebarProps) {
 					Option Type
 				</h3>
 				<div className="flex bg-white/5 p-1 rounded-lg">
-					{["call", "put"].map((t) => (
+					{optionTypes.map((t) => (
 						<button
 							key={t}
 							type="button"
-							onClick={() => updateParams({ type: t as any })}
+							onClick={() => updateParams({ type: t })}
 							className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${
 								params.type === t
 									? "bg-rf-primary text-white shadow-lg"

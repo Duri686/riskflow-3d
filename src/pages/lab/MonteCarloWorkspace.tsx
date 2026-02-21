@@ -13,15 +13,23 @@ interface MonteCarloWorkspaceProps {
 
 export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspaceProps) {
   const monteCarlo = useMonteCarloSession();
+  const {
+    input,
+    metrics,
+    terminalPrices,
+    isPlaying,
+    togglePlaying,
+    resimulate,
+    updateInput,
+  } = monteCarlo;
 
   // 自动计算时间步数 Logic (Business Rule: Steps should align with years)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: trigger only on years change
   useEffect(() => {
-    const autoSteps = Math.round(monteCarlo.input.years * TRADING_DAYS_PER_YEAR);
-    if (monteCarlo.input.steps !== autoSteps) {
-      monteCarlo.updateInput("steps", autoSteps);
+    const autoSteps = Math.round(input.years * TRADING_DAYS_PER_YEAR);
+    if (input.steps !== autoSteps) {
+      updateInput("steps", autoSteps);
     }
-  }, [monteCarlo.input.years]);
+  }, [input.years, input.steps, updateInput]);
 
   // 注入 sidebar
   // biome-ignore lint/correctness/useExhaustiveDependencies: 依赖 session 整体
@@ -34,40 +42,40 @@ export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspac
     onActions(
       <button
         type="button"
-        onClick={() => monteCarlo.resimulate()}
+        onClick={resimulate}
         className="flex h-8 w-8 items-center justify-center rounded border border-white/10 bg-transparent text-rf-primary hover:bg-rf-primary/10"
         title="重新模拟"
       >
         <MaterialIcon name="bolt" className="text-base" />
       </button>,
     );
-  }, [monteCarlo.resimulate, onActions]);
+  }, [resimulate, onActions]);
 
-  const computedSteps = Math.round(monteCarlo.metrics.progress * monteCarlo.input.steps);
-  const totalSteps = monteCarlo.input.steps;
+  const computedSteps = Math.round(metrics.progress * input.steps);
+  const totalSteps = input.steps;
 
   return (
     <>
       <div className="relative flex-1 flex flex-col gap-2 p-4 min-h-0 overflow-hidden">
         <div className="h-full min-h-0">
           <ReturnDistribution
-            key={`${monteCarlo.input.seed}`}
-            terminalPrices={monteCarlo.terminalPrices}
-            initialPrice={monteCarlo.input.initialPrice}
-            paths={monteCarlo.input.paths}
+            key={`${input.seed}`}
+            terminalPrices={terminalPrices}
+            initialPrice={input.initialPrice}
+            paths={input.paths}
             visiblePaths={Math.ceil(
-              monteCarlo.metrics.progress * monteCarlo.input.paths,
+              metrics.progress * input.paths,
             )}
           />
         </div>
       </div>
 
       <Footer
-        progress={monteCarlo.metrics.progress}
+        progress={metrics.progress}
         currentStep={computedSteps}
         totalSteps={totalSteps}
-        isPlaying={monteCarlo.isPlaying}
-        onTogglePlay={monteCarlo.togglePlaying}
+        isPlaying={isPlaying}
+        onTogglePlay={togglePlaying}
       />
     </>
   );
