@@ -176,6 +176,7 @@ export function LabLayout() {
 							variant="ghost"
 							size="icon"
 							onClick={() => setRightPanelCollapsed(!isRightCollapsed)}
+							aria-label={isRightCollapsed ? "显示参数面板" : "隐藏参数面板"}
 							title={isRightCollapsed ? "显示参数面板" : "隐藏参数面板"}
 							aria-pressed={!isRightCollapsed}
 							className={isRightCollapsed ? "text-[var(--color-bt-accent)]" : undefined}

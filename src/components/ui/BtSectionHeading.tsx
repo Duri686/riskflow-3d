@@ -25,7 +25,7 @@ export const BtSectionHeading = ({
 				<span>{title}</span>
 			</h2>
 			{meta ? (
-				<span className="font-bt-mono text-[9px] uppercase tracking-[0.2em] text-[var(--color-bt-muted-foreground)]">
+				<span className="font-bt-mono text-[9px] uppercase tracking-[0.16em] text-[var(--color-bt-muted-foreground)]">
 					{meta}
 				</span>
 			) : null}

@@ -42,7 +42,7 @@ export function HubPage() {
 			<nav className="relative z-20 border-b border-[var(--color-bt-border)]">
 				<div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-6 py-6 md:px-12 lg:px-16">
 					<RiskFlowLogo size="sm" className="text-[var(--color-bt-foreground)]" />
-					<span className="font-bt-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-bt-muted-foreground)]">
+					<span className="font-bt-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-bt-muted-foreground)]">
 						Command + 1~4
 					</span>
 				</div>
@@ -50,7 +50,7 @@ export function HubPage() {
 
 			<main className="relative z-10 mx-auto flex min-h-[calc(100vh-89px)] w-full max-w-[1200px] flex-col justify-between gap-16 px-6 pb-10 pt-10 md:px-12 md:pt-16 lg:px-16 lg:pt-20">
 				<section className="bt-reveal-up">
-					<p className="font-bt-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-bt-muted-foreground)]">
+					<p className="font-bt-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-bt-muted-foreground)]">
 						Quantitative Risk Interface
 					</p>
 					<h1 className="mt-5 max-w-[11ch] font-bt-sans text-5xl leading-[0.94] font-semibold uppercase tracking-[-0.055em] text-[var(--color-bt-foreground)] sm:text-6xl md:text-7xl lg:text-8xl">
@@ -71,7 +71,7 @@ export function HubPage() {
 						>
 							进入实验工作台
 						</BtButton>
-						<p className="font-bt-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-bt-muted-foreground)]">
+						<p className="font-bt-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-bt-muted-foreground)]">
 							快捷键: cmd/ctrl + 1 2 3 4
 						</p>
 					</div>

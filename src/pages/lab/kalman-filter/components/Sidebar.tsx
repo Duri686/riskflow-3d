@@ -1,47 +1,86 @@
 import { useState } from "react";
 import {
 	Activity,
-	Settings,
+	ArrowDownRight,
+	ArrowUpRight,
 	ChevronDown,
 	ChevronRight,
-	Shield,
 	Download,
+	Minus,
+	Settings,
+	Shield,
+	TriangleAlert,
+	type LucideIcon,
 } from "lucide-react";
-import { DataInputPanel } from "@/components/DataInputPanel";
-import { BtButton } from "@/components/ui/BtButton";
-import { BtSectionHeading } from "@/components/ui/BtSectionHeading";
 import {
-	KALMAN_PRESETS,
 	DEFAULT_EWMA_SPAN,
+	KALMAN_PRESETS,
 	type KalmanPreset,
+	type RiskPhase,
+	type VolRegime,
 } from "@/algorithms/kalman-filter/engine";
-import type { useKalmanSession } from "@/algorithms/kalman-filter/useSession";
 import {
 	buildRiskSnapshot,
 	downloadSnapshot,
 } from "@/algorithms/kalman-filter/snapshot";
+import type { useKalmanSession } from "@/algorithms/kalman-filter/useSession";
+import { DataInputPanel } from "@/components/DataInputPanel";
+import { BtButton } from "@/components/ui/BtButton";
+import {
+	BtSidebarDivider,
+	BtSidebarGroupLabel,
+	BtSidebarRangeRow,
+	BtSidebarSection,
+	BtSidebarSegmented,
+	BtSidebarStatusChip,
+	BtSidebarValueRow,
+	type BtSidebarTone,
+} from "@/components/ui/BtSidebarPrimitives";
 
 interface SidebarProps {
 	session: ReturnType<typeof useKalmanSession>;
 }
 
-const REGIME_STYLE: Record<string, { color: string; label: string }> = {
-	low: { color: "var(--color-bt-success)", label: "低风险" },
-	medium: { color: "var(--color-bt-warning)", label: "中等风险" },
-	high: { color: "var(--color-bt-danger)", label: "高风险" },
+const REGIME_STYLE: Record<VolRegime, { tone: BtSidebarTone; label: string }> = {
+	low: { tone: "success", label: "低风险" },
+	medium: { tone: "warning", label: "中等风险" },
+	high: { tone: "danger", label: "高风险" },
 };
 
-const PHASE_STYLE: Record<string, { color: string; icon: string }> = {
-	rising: { color: "var(--color-bt-danger)", icon: "⬆️" },
-	falling: { color: "var(--color-bt-success)", icon: "⬇️" },
-	shock: { color: "var(--color-bt-warning)", icon: "⚡" },
-	stable: { color: "var(--color-bt-muted-foreground)", icon: "◆" },
+const PHASE_STYLE: Record<
+	RiskPhase,
+	{ tone: BtSidebarTone; icon: LucideIcon }
+> = {
+	rising: { tone: "danger", icon: ArrowUpRight },
+	falling: { tone: "success", icon: ArrowDownRight },
+	shock: { tone: "warning", icon: TriangleAlert },
+	stable: { tone: "muted", icon: Minus },
+};
+
+const getResponsivenessLabel = (responsiveness: "fast" | "moderate" | "slow") => {
+	if (responsiveness === "fast") return "敏捷";
+	if (responsiveness === "moderate") return "适中";
+	return "迟钝";
+};
+
+const getDeltaTone = (value: number): BtSidebarTone => {
+	if (value > 0.02) return "danger";
+	if (value < -0.02) return "success";
+	return "muted";
+};
+
+const getConvergenceTone = (value: number): BtSidebarTone => {
+	if (value > 1.5) return "danger";
+	if (value < 0.9) return "success";
+	return "warning";
 };
 
 export function Sidebar({ session }: SidebarProps) {
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const { result } = session;
 	const hasData = result.steps.length > 0;
+	const phaseConfig = PHASE_STYLE[result.momentum.phase];
+	const PhaseIcon = phaseConfig.icon;
 
 	return (
 		<>
@@ -54,347 +93,207 @@ export function Sidebar({ session }: SidebarProps) {
 				}}
 			/>
 
-			<section className="border-b border-[var(--color-bt-border)] px-4 py-5">
-				<BtSectionHeading
-					title="Kalman Filter"
-					icon={<Activity className="h-3.5 w-3.5" strokeWidth={1.5} />}
-				/>
+			<BtSidebarSection
+				title="Kalman Filter"
+				icon={<Activity className="h-3.5 w-3.5" strokeWidth={1.5} />}
+			>
+				<div className="space-y-2">
+					<BtSidebarGroupLabel className="text-[11px] normal-case tracking-[0.08em]">
+						滤波模式
+					</BtSidebarGroupLabel>
+					<BtSidebarSegmented
+						value={session.preset}
+						onChange={(value) => session.applyPreset(value)}
+						columns={3}
+						options={(
+							Object.entries(KALMAN_PRESETS) as [
+								KalmanPreset,
+								(typeof KALMAN_PRESETS)[KalmanPreset],
+							][]
+						).map(([key, config]) => ({
+							value: key,
+							label: config.label,
+							title: config.desc,
+						}))}
+					/>
+				</div>
 
-				<div className="mt-4 space-y-4">
-					<div className="space-y-2">
-					<p className="font-bt-mono text-[11px] tracking-[0.08em] text-[var(--color-bt-muted-foreground)]">
-							滤波模式
-						</p>
-						<div className="grid grid-cols-3 gap-2">
-							{(
-								Object.entries(KALMAN_PRESETS) as [
-									KalmanPreset,
-									(typeof KALMAN_PRESETS)[KalmanPreset],
-								][]
-							).map(([key, cfg]) => (
-								<button
-									type="button"
-									key={key}
-									onClick={() => session.applyPreset(key)}
-									title={cfg.desc}
-									className={`h-11 border px-2.5 font-bt-mono text-[11px] tracking-[0.08em] transition-colors duration-150 ease-[var(--ease-bt)] ${
-										session.preset === key
-											? "border-[var(--color-bt-accent)] bg-[var(--color-bt-muted)] text-[var(--color-bt-accent)]"
-											: "border-[var(--color-bt-border)] text-[var(--color-bt-muted-foreground)] hover:text-[var(--color-bt-foreground)]"
-									}`}
-								>
-									{cfg.label}
-								</button>
-							))}
-						</div>
-					</div>
-
-					<button
-						type="button"
-						onClick={() => setShowAdvanced(!showAdvanced)}
-					className="flex h-11 w-full items-center justify-between border border-[var(--color-bt-border)] bg-transparent px-3 font-bt-mono text-[11px] tracking-[0.08em] text-[var(--color-bt-muted-foreground)] transition-colors duration-150 ease-[var(--ease-bt)] hover:text-[var(--color-bt-foreground)]"
+				<button
+					type="button"
+					onClick={() => setShowAdvanced(!showAdvanced)}
+					className="flex h-11 w-full items-center justify-between border border-[var(--color-bt-border)] bg-transparent px-3 font-bt-mono text-[11px] tracking-[0.08em] text-[var(--color-bt-muted-foreground)] transition-colors duration-150 ease-[var(--ease-bt)] hover:text-[var(--color-bt-foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-bt-ring)]"
 				>
-						<span className="inline-flex items-center gap-1.5">
-							<Settings className="h-3.5 w-3.5" strokeWidth={1.5} />
-							高级设置
-						</span>
-						{showAdvanced ? (
-							<ChevronDown className="h-3.5 w-3.5" strokeWidth={1.5} />
-						) : (
-							<ChevronRight className="h-3.5 w-3.5" strokeWidth={1.5} />
-						)}
-					</button>
-
+					<span className="inline-flex items-center gap-1.5">
+						<Settings className="h-3.5 w-3.5" strokeWidth={1.5} />
+						高级设置
+					</span>
 					{showAdvanced ? (
-						<div className="space-y-3 border border-[var(--color-bt-border)] bg-[var(--color-bt-muted)] px-3 py-3">
-							<div className="space-y-1.5">
-								<div className="flex justify-between font-bt-mono text-[11px] tracking-[0.08em] text-[var(--color-bt-muted-foreground)]">
-									<span>Q 状态变化速度</span>
-									<span className="text-[var(--color-bt-foreground)]">
-										{session.input.processNoise.toExponential(1)}
-									</span>
-								</div>
-								<input
-									type="range"
-									min={-7}
-									max={-2}
-									step={0.1}
-									value={Math.log10(session.input.processNoise)}
-									onChange={(e) =>
-										session.updateInput(
-											"processNoise",
-											10 ** Number(e.target.value),
-										)
-									}
-									className="bt-range"
-								/>
-							</div>
+						<ChevronDown className="h-3.5 w-3.5" strokeWidth={1.5} />
+					) : (
+						<ChevronRight className="h-3.5 w-3.5" strokeWidth={1.5} />
+					)}
+				</button>
 
-							<div className="space-y-1.5">
-								<div className="flex justify-between font-bt-mono text-[11px] tracking-[0.08em] text-[var(--color-bt-muted-foreground)]">
-									<span>R 观测噪声程度</span>
-									<span className="text-[var(--color-bt-foreground)]">
-										{session.input.measurementNoise.toExponential(1)}
-									</span>
-								</div>
-								<input
-									type="range"
-									min={-6}
-									max={-1}
-									step={0.1}
-									value={Math.log10(session.input.measurementNoise)}
-									onChange={(e) =>
-										session.updateInput(
-											"measurementNoise",
-											10 ** Number(e.target.value),
-										)
-									}
-									className="bt-range"
-								/>
-							</div>
+				{showAdvanced ? (
+					<div className="bt-sidebar-panel space-y-3">
+						<BtSidebarRangeRow
+							label="Q 状态变化速度"
+							value={session.input.processNoise.toExponential(1)}
+							min={-7}
+							max={-2}
+							step={0.1}
+							sliderValue={Math.log10(session.input.processNoise)}
+							onChange={(value) =>
+								session.updateInput("processNoise", 10 ** value)
+							}
+						/>
+						<BtSidebarRangeRow
+							label="R 观测噪声程度"
+							value={session.input.measurementNoise.toExponential(1)}
+							min={-6}
+							max={-1}
+							step={0.1}
+							sliderValue={Math.log10(session.input.measurementNoise)}
+							onChange={(value) =>
+								session.updateInput("measurementNoise", 10 ** value)
+							}
+						/>
+						<BtSidebarRangeRow
+							label="EWMA span"
+							value={`${session.input.ewmaSpan ?? DEFAULT_EWMA_SPAN}d`}
+							min={10}
+							max={30}
+							step={1}
+							sliderValue={session.input.ewmaSpan ?? DEFAULT_EWMA_SPAN}
+							onChange={(value) => session.setEwmaSpan(value)}
+						/>
+					</div>
+				) : null}
 
-							<div className="space-y-1.5">
-								<div className="flex justify-between font-bt-mono text-[11px] tracking-[0.08em] text-[var(--color-bt-muted-foreground)]">
-									<span>EWMA span</span>
-									<span className="text-[var(--color-bt-foreground)]">
-										{session.input.ewmaSpan ?? DEFAULT_EWMA_SPAN}d
-									</span>
-								</div>
-								<input
-									type="range"
-									min={10}
-									max={30}
-									step={1}
-									value={session.input.ewmaSpan ?? DEFAULT_EWMA_SPAN}
-									onChange={(e) =>
-										session.setEwmaSpan(Number(e.target.value))
-									}
-									className="bt-range"
-								/>
-							</div>
-						</div>
-					) : null}
-
-					{hasData ? (
-						<div className="space-y-3 border border-[var(--color-bt-border)] bg-[var(--color-bt-muted)] px-3 py-3">
-							<div className="flex items-center gap-1.5 font-bt-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-bt-muted-foreground)]">
+				{hasData ? (
+					<>
+						<div className="bt-sidebar-panel space-y-3">
+							<BtSidebarGroupLabel className="inline-flex items-center gap-1.5">
 								<Shield className="h-3.5 w-3.5" strokeWidth={1.5} />
 								风险状态
-							</div>
+							</BtSidebarGroupLabel>
 
-							<div
-								className="flex items-center gap-2 border px-2 py-1.5"
-								style={{
-									backgroundColor: `${REGIME_STYLE[result.regime].color}10`,
-									borderColor: `${REGIME_STYLE[result.regime].color}40`,
-								}}
-							>
-								<div
-									className="h-2 w-2"
-									style={{ backgroundColor: REGIME_STYLE[result.regime].color }}
+							<BtSidebarStatusChip
+								tone={REGIME_STYLE[result.regime].tone}
+								label={REGIME_STYLE[result.regime].label}
+							/>
+
+							<BtSidebarValueRow
+								label="Kalman sigma"
+								value={`${(result.currentVol * 100).toFixed(1)}%`}
+								tone="success"
+								className="text-[11px] normal-case tracking-[0.08em]"
+								labelClassName="normal-case tracking-[0.08em]"
+								valueClassName="text-[11px]"
+							/>
+							<BtSidebarValueRow
+								label="EWMA sigma"
+								value={`${(result.ewma.currentVol * 100).toFixed(1)}%`}
+								tone="warning"
+								className="text-[11px] normal-case tracking-[0.08em]"
+								labelClassName="normal-case tracking-[0.08em]"
+								valueClassName="text-[11px]"
+							/>
+							<BtSidebarValueRow
+								label="Gain"
+								value={`${result.finalGain.toFixed(3)} ${getResponsivenessLabel(result.gainDiagnostic.responsiveness)}`}
+								tone={result.gainDiagnostic.isLagging ? "danger" : "foreground"}
+								withDivider={false}
+								className="text-[11px] normal-case tracking-[0.08em]"
+								labelClassName="normal-case tracking-[0.08em]"
+								valueClassName="text-[11px]"
+							/>
+
+							<BtSidebarDivider />
+
+							<BtSidebarGroupLabel>风险动量</BtSidebarGroupLabel>
+							<BtSidebarStatusChip
+								tone={phaseConfig.tone}
+								icon={<PhaseIcon className="h-3.5 w-3.5" strokeWidth={1.5} />}
+								label={result.momentum.phaseLabel}
+							/>
+							<BtSidebarValueRow
+								label="Kalman Δ"
+								value={`${result.momentum.kalmanDelta > 0 ? "+" : ""}${(result.momentum.kalmanDelta * 100).toFixed(1)}%`}
+								tone={getDeltaTone(result.momentum.kalmanDelta)}
+							/>
+							<BtSidebarValueRow
+								label="收敛比"
+								value={`${result.momentum.convergenceRatio.toFixed(2)}x`}
+								tone={getConvergenceTone(result.momentum.convergenceRatio)}
+								withDivider={false}
+							/>
+
+							<BtSidebarDivider />
+
+							<BtSidebarGroupLabel>风控建议</BtSidebarGroupLabel>
+							<BtSidebarValueRow
+								label="杠杆"
+								value={`≤ ${result.riskGate.suggestedLeverage.toFixed(1)}x`}
+								tone="foreground"
+							/>
+							<BtSidebarValueRow
+								label="止损"
+								value={`±${(result.riskGate.suggestedStopWidth * 100).toFixed(0)}%`}
+								tone="foreground"
+								withDivider={false}
+							/>
+
+							{result.momentum.phase === "shock" ? (
+								<BtSidebarStatusChip
+									tone="warning"
+									label="余震期：全部策略强制中性"
+									className="min-h-0 py-1.5 normal-case tracking-[0.08em]"
 								/>
-								<span
-									className="font-bt-mono text-[11px] font-semibold"
-									style={{ color: REGIME_STYLE[result.regime].color }}
-								>
-									{REGIME_STYLE[result.regime].label}
-								</span>
+							) : null}
+
+							<div className="space-y-1.5">
+								<BtSidebarStatusChip
+									tone={result.riskGate.allowTrend ? "success" : "muted"}
+									label="趋势跟踪"
+									meta="σ < 40%"
+									className="min-h-0 py-1.5"
+								/>
+								<BtSidebarStatusChip
+									tone={result.riskGate.allowMeanRevert ? "success" : "muted"}
+									label="均值回归"
+									meta="40~80%"
+									className="min-h-0 py-1.5"
+								/>
+								<BtSidebarStatusChip
+									tone={result.riskGate.forceNeutral ? "warning" : "muted"}
+									label="强制中性"
+									meta="σ > 80%"
+									className="min-h-0 py-1.5"
+								/>
 							</div>
-
-							<div className="space-y-1.5 text-[11px]">
-								<p className="flex items-center justify-between font-bt-mono">
-									<span className="text-[var(--color-bt-muted-foreground)]">Kalman σ</span>
-									<strong className="text-[var(--color-bt-success)]">
-										{(result.currentVol * 100).toFixed(1)}%
-									</strong>
-								</p>
-								<p className="flex items-center justify-between font-bt-mono">
-									<span className="text-[var(--color-bt-muted-foreground)]">EWMA σ</span>
-									<strong className="text-[var(--color-bt-warning)]">
-										{(result.ewma.currentVol * 100).toFixed(1)}%
-									</strong>
-								</p>
-								<p className="flex items-center justify-between font-bt-mono">
-									<span className="text-[var(--color-bt-muted-foreground)]">Gain</span>
-									<span className="text-[var(--color-bt-foreground)]">
-										{result.finalGain.toFixed(3)}
-										<span
-											className="ml-1 text-[9px]"
-											style={{
-												color: result.gainDiagnostic.isLagging
-													? "var(--color-bt-danger)"
-													: "var(--color-bt-muted-foreground)",
-											}}
-										>
-											{result.gainDiagnostic.responsiveness === "fast"
-												? "敏捷"
-												: result.gainDiagnostic.responsiveness === "moderate"
-													? "适中"
-													: "迟钝"}
-										</span>
-									</span>
-								</p>
-							</div>
-
-							<div className="space-y-1.5 border-t border-[var(--color-bt-border)] pt-2">
-								<p className="font-bt-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-bt-muted-foreground)]">
-									风险动量
-								</p>
-								<div
-									className="flex items-center gap-2 border px-2 py-1.5"
-									style={{
-										backgroundColor: `${PHASE_STYLE[result.momentum.phase].color}10`,
-										borderColor: `${PHASE_STYLE[result.momentum.phase].color}40`,
-									}}
-								>
-									<span className="text-xs">{PHASE_STYLE[result.momentum.phase].icon}</span>
-									<span
-										className="font-bt-mono text-[10px] font-semibold"
-										style={{ color: PHASE_STYLE[result.momentum.phase].color }}
-									>
-										{result.momentum.phaseLabel}
-									</span>
-								</div>
-
-								<p className="flex items-center justify-between font-bt-mono text-[10px]">
-									<span className="text-[var(--color-bt-muted-foreground)]">Kalman Δ</span>
-									<span
-										style={{
-											color:
-												result.momentum.kalmanDelta > 0.02
-													? "var(--color-bt-danger)"
-													: result.momentum.kalmanDelta < -0.02
-														? "var(--color-bt-success)"
-														: "var(--color-bt-muted-foreground)",
-										}}
-									>
-										{result.momentum.kalmanDelta > 0 ? "+" : ""}
-										{(result.momentum.kalmanDelta * 100).toFixed(1)}%
-									</span>
-								</p>
-
-								<p className="flex items-center justify-between font-bt-mono text-[10px]">
-									<span className="text-[var(--color-bt-muted-foreground)]">收敛比</span>
-									<span
-										style={{
-											color:
-												result.momentum.convergenceRatio > 1.5
-													? "var(--color-bt-danger)"
-													: result.momentum.convergenceRatio < 0.9
-														? "var(--color-bt-success)"
-														: "var(--color-bt-warning)",
-										}}
-									>
-										{result.momentum.convergenceRatio.toFixed(2)}x
-									</span>
-								</p>
-							</div>
-
-							<div className="space-y-1.5 border-t border-[var(--color-bt-border)] pt-2">
-								<p className="font-bt-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-bt-muted-foreground)]">
-									风控建议
-								</p>
-
-								<p className="flex items-center justify-between font-bt-mono text-[10px]">
-									<span className="text-[var(--color-bt-muted-foreground)]">杠杆</span>
-									<span className="text-[var(--color-bt-foreground)]">
-										≤ {result.riskGate.suggestedLeverage.toFixed(1)}x
-										{result.momentum.phase === "rising" ? (
-											<span className="ml-1 text-[var(--color-bt-danger)]">×0.7</span>
-										) : null}
-									</span>
-								</p>
-
-								<p className="flex items-center justify-between font-bt-mono text-[10px]">
-									<span className="text-[var(--color-bt-muted-foreground)]">止损</span>
-									<span className="text-[var(--color-bt-foreground)]">
-										±{(result.riskGate.suggestedStopWidth * 100).toFixed(0)}%
-									</span>
-								</p>
-
-								{result.momentum.phase === "shock" ? (
-									<div
-										className="border px-1.5 py-1 font-bt-mono text-[9px]"
-										style={{
-											backgroundColor: "var(--color-bt-warning-soft)",
-											borderColor: "color-mix(in oklab, var(--color-bt-warning) 40%, transparent)",
-											color: "var(--color-bt-warning)",
-										}}
-									>
-										余震期：全部策略强制中性
-									</div>
-								) : null}
-
-								<div className="flex flex-col gap-1.5">
-									<StrategyChip
-										label="趋势跟踪"
-										condition="σ < 40%"
-										active={result.riskGate.allowTrend}
-									/>
-									<StrategyChip
-										label="均值回归"
-										condition="40-80%"
-										active={result.riskGate.allowMeanRevert}
-									/>
-									<StrategyChip
-										label="强制中性"
-										condition="σ > 80%"
-										active={result.riskGate.forceNeutral}
-									/>
-								</div>
-							</div>
-
-							<BtButton
-								variant="primary"
-								size="md"
-								onClick={() => {
-									const snapshot = buildRiskSnapshot(
-										result,
-										session.input,
-										session.preset,
-										session.assetMeta,
-									);
-									downloadSnapshot(snapshot);
-								}}
-								className="mt-1 w-full justify-center"
-								startIcon={<Download className="h-3.5 w-3.5" strokeWidth={1.5} />}
-							>
-								下载风险快照
-							</BtButton>
 						</div>
-					) : null}
-				</div>
-			</section>
-		</>
-	);
-}
 
-function StrategyChip({
-	label,
-	condition,
-	active,
-}: {
-	label: string;
-	condition: string;
-	active: boolean;
-}) {
-	return (
-		<span
-			className="flex items-center justify-between border px-2 py-1 font-bt-mono text-[10px] uppercase tracking-[0.08em]"
-			style={{
-				backgroundColor: active
-					? "var(--color-bt-success-soft)"
-					: "color-mix(in oklab, var(--color-bt-muted-foreground) 8%, transparent)",
-				color: active
-					? "var(--color-bt-success)"
-					: "var(--color-bt-muted-foreground)",
-				borderColor: active
-					? "color-mix(in oklab, var(--color-bt-success) 35%, transparent)"
-					: "color-mix(in oklab, var(--color-bt-muted-foreground) 25%, transparent)",
-			}}
-		>
-			<span>{label}</span>
-			<span className="text-[9px] opacity-75">{condition}</span>
-		</span>
+						<BtButton
+							variant="primary"
+							size="md"
+							onClick={() => {
+								const snapshot = buildRiskSnapshot(
+									result,
+									session.input,
+									session.preset,
+									session.assetMeta,
+								);
+								downloadSnapshot(snapshot);
+							}}
+							className="w-full justify-center"
+							startIcon={<Download className="h-3.5 w-3.5" strokeWidth={1.5} />}
+						>
+							下载风险快照
+						</BtButton>
+					</>
+				) : null}
+			</BtSidebarSection>
+		</>
 	);
 }

@@ -9,7 +9,7 @@ const combineClasses = (...classes: Array<string | undefined | false>) => {
 };
 
 const fieldBaseClass =
-	"w-full appearance-none border border-[var(--color-bt-border)] bg-[var(--color-bt-input)] px-4 text-base text-[var(--color-bt-foreground)] outline-none transition-colors duration-150 ease-[var(--ease-bt)] placeholder:text-[var(--color-bt-muted-foreground)] focus:border-[var(--color-bt-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-bt-ring)] disabled:cursor-not-allowed disabled:opacity-50";
+	"w-full appearance-none border border-[var(--color-bt-border)] bg-[var(--color-bt-input)] px-4 text-[15px] text-[var(--color-bt-foreground)] outline-none transition-colors duration-150 ease-[var(--ease-bt)] placeholder:text-[var(--color-bt-muted-foreground)] focus:border-[var(--color-bt-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-bt-ring)] disabled:cursor-not-allowed disabled:opacity-50 md:text-base";
 
 type BtInputProps = InputHTMLAttributes<HTMLInputElement>;
 
@@ -29,7 +29,7 @@ export const BtSelect = ({ className, children, ...props }: BtSelectProps) => {
 		<select
 			className={combineClasses(
 				fieldBaseClass,
-				"h-12 pr-10 leading-5 md:h-14",
+				"h-12 cursor-pointer pr-10 leading-5 md:h-14",
 				className,
 			)}
 			{...props}

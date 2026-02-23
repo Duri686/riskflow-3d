@@ -192,6 +192,21 @@
     background: var(--color-bt-border);
   }
 
+  .bt-sidebar-section {
+    border-bottom: 1px solid var(--color-bt-border);
+    padding: 1.25rem 1rem;
+  }
+
+  .bt-sidebar-panel {
+    border: 1px solid var(--color-bt-border);
+    background: var(--color-bt-muted);
+    padding: 0.75rem;
+  }
+
+  .bt-sidebar-divider {
+    border-top: 1px solid var(--color-bt-border);
+  }
+
   .bt-divider-grid {
     background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
     background-size: 100% 54px;

@@ -12,7 +12,7 @@ interface BtButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const sizeClassMap: Record<BtButtonSize, string> = {
 	sm: "h-11 gap-2 text-[11px]",
-	md: "h-12 gap-2.5 text-xs",
+	md: "h-12 gap-2.5 text-[11px]",
 	lg: "h-14 gap-3 text-sm",
 	icon: "h-11 w-11 px-0",
 };
@@ -46,7 +46,7 @@ export const BtButton = ({
 		<button
 			type={type}
 			className={combineClasses(
-				"relative inline-flex shrink-0 appearance-none items-center justify-center whitespace-nowrap border-0 bg-transparent align-middle font-bt-sans font-semibold uppercase tracking-[0.1em] text-[var(--color-bt-foreground)] transition-[color,background-color,transform] duration-150 ease-[var(--ease-bt)] active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-bt-ring)] disabled:pointer-events-none disabled:opacity-50",
+				"relative inline-flex min-h-11 shrink-0 appearance-none items-center justify-center whitespace-nowrap border-0 bg-transparent align-middle font-bt-sans font-semibold uppercase tracking-[0.1em] text-[var(--color-bt-foreground)] transition-[color,background-color,transform] duration-150 ease-[var(--ease-bt)] active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-bt-ring)] disabled:pointer-events-none disabled:opacity-50",
 				sizeClassMap[size],
 				variantClassMap[variant],
 				isIconOnly && "min-w-11 after:hidden",
