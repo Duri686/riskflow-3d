@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { KalmanFilterResult, VolRegime } from "./engine";
-import { TRADING_DAYS_PER_YEAR } from "../shared/constants";
+import type { KalmanFilterResult, VolRegime } from "@/algorithms/kalman-filter/engine";
+import { TRADING_DAYS_PER_YEAR } from "@/algorithms/shared/constants";
 
 interface VolatilityChartProps {
 	result: KalmanFilterResult;
@@ -209,8 +209,8 @@ export function VolatilityChart({
 				{isBootstrapping ? (
 					<div className="flex flex-col items-center gap-3">
 						<div className="relative h-8 w-8">
-							<div className="absolute inset-0 rounded-full border border-[var(--color-bt-accent)]/30" />
-							<div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-r-[var(--color-bt-accent)] border-t-[var(--color-bt-accent)]" />
+							<div className="absolute inset-0 border border-[var(--color-bt-accent)]/30" />
+							<div className="absolute inset-0 animate-spin border-2 border-transparent border-r-[var(--color-bt-accent)] border-t-[var(--color-bt-accent)]" />
 						</div>
 						<p className="font-bt-mono text-xs text-[var(--color-bt-muted-foreground)]">
 							正在拉取日线数据并初始化滤波器...

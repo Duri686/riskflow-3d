@@ -47,7 +47,7 @@ export const WorkspaceActionsShell = ({
 	return (
 		<div
 			className={combineClasses(
-				"mr-1 flex items-center gap-3 border-l border-[var(--color-bt-border)] pl-3",
+				"mr-1 flex items-stretch gap-3 border-l border-[var(--color-bt-border)] pl-3",
 				className,
 			)}
 		>
@@ -63,8 +63,8 @@ export const WorkspaceActionMetric = ({
 	align = "end",
 }: WorkspaceActionMetricProps) => {
 	return (
-		<div className={combineClasses("flex flex-col", alignClassMap[align])}>
-			<span className="font-bt-mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-bt-muted-foreground)]">
+		<div className={combineClasses("flex flex-col justify-center gap-0.5", alignClassMap[align])}>
+			<span className="font-bt-mono text-[9px] uppercase tracking-[0.16em] text-[var(--color-bt-muted-foreground)]">
 				{label}
 			</span>
 			<span className={combineClasses("font-bt-mono text-[11px] font-semibold", toneClassMap[tone])}>
@@ -75,5 +75,5 @@ export const WorkspaceActionMetric = ({
 };
 
 export const WorkspaceActionDivider = () => {
-	return <div className="h-7 w-px bg-[var(--color-bt-border)]" />;
+	return <div className="h-8 w-px bg-[var(--color-bt-border)]" />;
 };

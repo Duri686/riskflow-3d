@@ -2,10 +2,10 @@ import { useCallback, useState } from "react";
 import { Gauge, Settings, ChevronDown, ChevronRight } from "lucide-react";
 import { DataInputPanel } from "@/components/DataInputPanel";
 import { BtSectionHeading } from "@/components/ui/BtSectionHeading";
-import { RiskCard } from "./RiskCard";
 import type { useMonteCarloSession } from "@/algorithms/monte-carlo/useSession";
 import { TRADING_DAYS_PER_YEAR } from "@/algorithms/shared/constants";
 import { formatMonteCarloDataSource } from "@/algorithms/monte-carlo/viewMeta";
+import { RiskCard } from "@/pages/lab/monte-carlo/components/RiskCard";
 
 interface SidebarProps {
   session: ReturnType<typeof useMonteCarloSession>;
@@ -152,7 +152,9 @@ export function Sidebar({ session }: SidebarProps) {
                 </span>
                 <strong
                   className={`font-bt-mono ${
-                    input.drift >= 0 ? "text-[var(--color-bt-accent)]" : "text-[#ff8c73]"
+                    input.drift >= 0
+                      ? "text-[var(--color-bt-success)]"
+                      : "text-[var(--color-bt-danger)]"
                   }`}
                 >
                   {input.drift > 0 ? "+" : ""}
@@ -187,7 +189,9 @@ export function Sidebar({ session }: SidebarProps) {
                     <span>预期收益率 mu</span>
                     <span
                       className={
-                        input.drift >= 0 ? "text-[var(--color-bt-accent)]" : "text-[#ff8c73]"
+                        input.drift >= 0
+                          ? "text-[var(--color-bt-success)]"
+                          : "text-[var(--color-bt-danger)]"
                       }
                     >
                       {input.drift > 0 ? "+" : ""}

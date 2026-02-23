@@ -1,4 +1,4 @@
-import type { MarkowitzPreset, MarkowitzSession } from "./useSession";
+import type { MarkowitzPreset, MarkowitzSession } from "@/algorithms/markowitz/useSession";
 import { BtSectionHeading } from "@/components/ui/BtSectionHeading";
 
 interface ParamsPanelProps {
@@ -131,7 +131,7 @@ export function ParamsPanel({ session }: ParamsPanelProps) {
 							key={option.id}
 							type="button"
 							onClick={() => applyPreset(option.id)}
-							className="h-11 border border-[var(--color-bt-border)] px-2.5 font-bt-mono text-[11px] tracking-[0.08em] text-[var(--color-bt-muted-foreground)] transition-colors duration-150 ease-[var(--ease-bt)] hover:text-[var(--color-bt-foreground)]"
+							className="h-11 border border-[var(--color-bt-border)] bg-[var(--color-bt-background)] px-2.5 font-bt-mono text-[11px] tracking-[0.08em] text-[var(--color-bt-muted-foreground)] transition-colors duration-150 ease-[var(--ease-bt)] hover:border-[var(--color-bt-accent)] hover:text-[var(--color-bt-foreground)]"
 						>
 							{option.label}
 						</button>
@@ -142,14 +142,14 @@ export function ParamsPanel({ session }: ParamsPanelProps) {
 					<button
 						type="button"
 						onClick={randomizeCloud}
-						className="h-11 border border-[var(--color-bt-border)] px-2.5 font-bt-mono text-[11px] tracking-[0.08em] text-[var(--color-bt-muted-foreground)] transition-colors duration-150 ease-[var(--ease-bt)] hover:text-[var(--color-bt-foreground)]"
+						className="h-11 border border-[var(--color-bt-border)] bg-[var(--color-bt-background)] px-2.5 font-bt-mono text-[11px] tracking-[0.08em] text-[var(--color-bt-muted-foreground)] transition-colors duration-150 ease-[var(--ease-bt)] hover:border-[var(--color-bt-accent)] hover:text-[var(--color-bt-foreground)]"
 					>
 						重采样
 					</button>
 					<button
 						type="button"
 						onClick={resetDefaults}
-						className="h-11 border border-[var(--color-bt-border)] px-2.5 font-bt-mono text-[11px] tracking-[0.08em] text-[var(--color-bt-muted-foreground)] transition-colors duration-150 ease-[var(--ease-bt)] hover:text-[var(--color-bt-foreground)]"
+						className="h-11 border border-[var(--color-bt-border)] bg-[var(--color-bt-background)] px-2.5 font-bt-mono text-[11px] tracking-[0.08em] text-[var(--color-bt-muted-foreground)] transition-colors duration-150 ease-[var(--ease-bt)] hover:border-[var(--color-bt-accent)] hover:text-[var(--color-bt-foreground)]"
 					>
 						重置
 					</button>

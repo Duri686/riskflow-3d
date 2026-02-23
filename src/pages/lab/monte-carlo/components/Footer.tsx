@@ -1,55 +1,57 @@
 interface FooterProps {
-  progress: number;
-  currentStep: number;
-  totalSteps: number;
-  isPlaying: boolean;
-  onTogglePlay: () => void;
+	progress: number;
+	currentStep: number;
+	totalSteps: number;
+	isPlaying: boolean;
+	onTogglePlay: () => void;
 }
 
 export function Footer({
-  progress,
-  currentStep,
-  totalSteps,
-  isPlaying,
-  onTogglePlay,
+	progress,
+	currentStep,
+	totalSteps,
+	isPlaying,
+	onTogglePlay,
 }: FooterProps) {
-  return (
-    <div className="z-20 flex shrink-0 items-center gap-4 border-t border-white/5 bg-rf-bg/60 px-4 py-2">
-      <div className="flex flex-1 items-center gap-3">
-        <div className="relative h-0.5 flex-1 rounded-full bg-white/10">
-          <div
-            className="absolute inset-y-0 left-0 rounded-full bg-linear-to-r from-rf-accent to-rf-primary"
-            style={{ width: `${progress * 100}%` }}
-          />
-        </div>
-        <span className="font-mono text-[10px] tabular-nums text-gray-500">
-          {currentStep}/{totalSteps}
-        </span>
-      </div>
+	return (
+		<div className="z-20 flex shrink-0 items-center gap-4 border-t border-[var(--color-bt-border)] bg-[var(--color-bt-card)] px-4 py-2">
+			<div className="flex flex-1 items-center gap-3">
+				<div className="relative h-0.5 flex-1 bg-[var(--color-bt-border)]">
+					<div
+						className="absolute inset-y-0 left-0 bg-[var(--color-bt-accent)]"
+						style={{ width: `${progress * 100}%` }}
+					/>
+				</div>
+				<span className="font-bt-mono text-[10px] tabular-nums text-[var(--color-bt-muted-foreground)]">
+					{currentStep}/{totalSteps}
+				</span>
+			</div>
 
-      {progress >= 1 ? (
-        <div className="flex h-7 w-20 items-center justify-center gap-2 rounded border border-rf-accent/50 bg-rf-accent/10 font-mono text-[10px] font-medium text-rf-accent">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rf-accent" />
-          <span className="w-12 text-center">已完成</span>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={onTogglePlay}
-          className={`flex h-7 w-20 items-center justify-center gap-2 rounded border font-mono text-[10px] font-medium transition-all ${
-            isPlaying
-              ? "border-rf-accent/50 bg-rf-accent/10 text-rf-accent hover:bg-rf-accent/20"
-              : "border-rf-primary/50 bg-rf-primary/10 text-rf-primary hover:bg-rf-primary/20"
-          }`}
-        >
-          <span
-            className={`h-1.5 w-1.5 shrink-0 rounded-full ${isPlaying ? "animate-pulse bg-rf-accent" : "bg-rf-primary"}`}
-          />
-          <span className="w-12 text-center">
-            {isPlaying ? "运行中" : "已暂停"}
-          </span>
-        </button>
-      )}
-    </div>
-  );
+			{progress >= 1 ? (
+				<div className="flex h-8 min-w-20 items-center justify-center gap-2 border border-[var(--color-bt-success)]/50 bg-[var(--color-bt-success-soft)] px-2 font-bt-mono text-[10px] font-medium text-[var(--color-bt-success)]">
+					<span className="h-1.5 w-1.5 shrink-0 bg-[var(--color-bt-success)]" />
+					<span>已完成</span>
+				</div>
+			) : (
+				<button
+					type="button"
+					onClick={onTogglePlay}
+					className={`flex h-8 min-w-20 items-center justify-center gap-2 border px-2 font-bt-mono text-[10px] font-medium transition-colors duration-150 ease-[var(--ease-bt)] ${
+						isPlaying
+							? "border-[var(--color-bt-success)]/50 bg-[var(--color-bt-success-soft)] text-[var(--color-bt-success)] hover:bg-[var(--color-bt-success-soft)]/80"
+							: "border-[var(--color-bt-warning)]/50 bg-[var(--color-bt-warning-soft)] text-[var(--color-bt-warning)] hover:bg-[var(--color-bt-warning-soft)]/80"
+					}`}
+				>
+					<span
+						className={`h-1.5 w-1.5 shrink-0 ${
+							isPlaying
+								? "bg-[var(--color-bt-success)] animate-pulse"
+								: "bg-[var(--color-bt-warning)]"
+						}`}
+					/>
+					<span>{isPlaying ? "运行中" : "已暂停"}</span>
+				</button>
+			)}
+		</div>
+	);
 }

@@ -21,7 +21,7 @@ export function Sidebar({ session }: SidebarProps) {
   const optionTypes: OptionType[] = ["call", "put"];
 
 	return (
-		<div className="flex flex-col gap-4 p-4">
+		<div className="flex flex-col gap-4 border-b border-[var(--color-bt-border)] p-4">
 			<section className="border border-[var(--color-bt-border)] bg-[var(--color-bt-muted)] px-3 py-3">
 				<BtSectionHeading
 					title="Metric Axis"

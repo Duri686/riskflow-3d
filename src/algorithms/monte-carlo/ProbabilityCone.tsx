@@ -79,8 +79,8 @@ export function ProbabilityCone({
   return (
     <div className="flex h-full w-full flex-col">
       <div className="mb-1 flex shrink-0 items-center justify-between">
-        <span className="font-mono text-[10px] text-gray-400">价格置信区间 (5%-95%)</span>
-        <span className="font-mono text-[10px] text-gray-500">
+        <span className="font-bt-mono text-[10px] text-[var(--color-bt-muted-foreground)]">价格置信区间 (5%-95%)</span>
+        <span className="font-bt-mono text-[10px] text-[var(--color-bt-muted-foreground)]/80">
           T = {lastStat ? lastStat.elapsedYears.toFixed(2) : '0.00'} 年
         </span>
       </div>

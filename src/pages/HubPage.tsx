@@ -30,30 +30,26 @@ export function HubPage() {
 	}, [navigate]);
 
 	return (
-		<div className="relative min-h-screen overflow-hidden bg-[var(--color-bt-background)] text-[var(--color-bt-foreground)] selection:bg-[var(--color-bt-accent)] selection:text-[var(--color-bt-accent-foreground)]">
+		<div className="relative min-h-screen overflow-hidden bg-[var(--color-bt-background)] text-[var(--color-bt-foreground)]">
 			<div className="bt-noise-overlay" />
 			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(110%_70%_at_78%_0%,rgba(255,61,0,0.16),transparent_52%)]" />
-			<div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:100%_54px] opacity-20" />
+			<div className="pointer-events-none absolute inset-0 bt-divider-grid opacity-20" />
 
-			<div className="pointer-events-none absolute -right-3 top-18 hidden select-none font-bt-sans text-[clamp(8rem,20vw,16rem)] leading-none font-semibold tracking-[-0.06em] text-[var(--color-bt-muted)]/45 lg:block">
+			<div className="pointer-events-none absolute -right-3 top-24 hidden select-none font-bt-sans text-[clamp(8rem,20vw,16rem)] leading-none font-semibold tracking-[-0.06em] text-[var(--color-bt-muted)]/45 lg:block">
 				RISK
 			</div>
 
 			<nav className="relative z-20 border-b border-[var(--color-bt-border)]">
-				<div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-6 py-6 md:px-12">
-					<RiskFlowLogo
-						size="sm"
-						accentColor="var(--color-bt-accent)"
-						className="text-[var(--color-bt-foreground)]"
-					/>
+				<div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-6 py-6 md:px-12 lg:px-16">
+					<RiskFlowLogo size="sm" className="text-[var(--color-bt-foreground)]" />
 					<span className="font-bt-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-bt-muted-foreground)]">
 						Command + 1~4
 					</span>
 				</div>
 			</nav>
 
-			<main className="relative z-10 mx-auto flex min-h-[calc(100vh-89px)] w-full max-w-[1200px] flex-col justify-between gap-18 px-6 pb-10 pt-10 md:px-12 md:pt-16">
-				<section>
+			<main className="relative z-10 mx-auto flex min-h-[calc(100vh-89px)] w-full max-w-[1200px] flex-col justify-between gap-16 px-6 pb-10 pt-10 md:px-12 md:pt-16 lg:px-16 lg:pt-20">
+				<section className="bt-reveal-up">
 					<p className="font-bt-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-bt-muted-foreground)]">
 						Quantitative Risk Interface
 					</p>

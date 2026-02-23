@@ -8,7 +8,7 @@ interface SidebarProps {
 
 export function Sidebar({ session }: SidebarProps) {
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 border-b border-[var(--color-bt-border)] p-4">
       <ParamsPanel session={session} />
       <MetricsPanel metrics={session.metrics} assets={session.assets} />
     </div>

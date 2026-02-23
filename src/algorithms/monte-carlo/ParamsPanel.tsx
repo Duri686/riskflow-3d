@@ -1,4 +1,4 @@
-import type { MonteCarloInput } from "./engine";
+import type { MonteCarloInput } from "@/algorithms/monte-carlo/engine";
 
 interface SliderConfig {
 	key: keyof MonteCarloInput;
@@ -55,10 +55,8 @@ export function MonteCarloParamsPanel({
 				return (
 					<label key={config.key} className="grid gap-1">
 						<div className="flex items-baseline justify-between text-xs">
-							<span className="text-rf-text-secondary">
-								{config.label}
-							</span>
-							<strong className="font-mono text-rf-text">
+							<span className="text-[var(--color-bt-muted-foreground)]">{config.label}</span>
+							<strong className="font-bt-mono text-[var(--color-bt-foreground)]">
 								{config.valueFormatter
 									? config.valueFormatter(currentValue)
 									: Number.isInteger(currentValue)
@@ -72,12 +70,8 @@ export function MonteCarloParamsPanel({
 							max={config.max}
 							step={config.step}
 							value={currentValue}
-							onChange={(event) =>
-								onUpdateInput(
-									config.key,
-									Number(event.target.value),
-								)
-							}
+							onChange={(event) => onUpdateInput(config.key, Number(event.target.value))}
+							className="bt-range"
 						/>
 					</label>
 				);
@@ -86,16 +80,16 @@ export function MonteCarloParamsPanel({
 				<button
 					type="button"
 					onClick={onTogglePlaying}
-					className="flex-1 rounded-btn px-3 py-1.5 text-xs"
+					className="flex h-11 flex-1 items-center justify-center border border-[var(--color-bt-border)] px-3 py-1.5 font-bt-mono text-xs uppercase tracking-[0.12em] text-[var(--color-bt-muted-foreground)] transition-colors duration-150 ease-[var(--ease-bt)] hover:text-[var(--color-bt-foreground)]"
 				>
-					{isPlaying ? "⏸ 暂停" : "▶ 继续"}
+					{isPlaying ? "暂停" : "继续"}
 				</button>
 				<button
 					type="button"
 					onClick={onResimulate}
-					className="flex-1 rounded-btn px-3 py-1.5 text-xs"
+					className="flex h-11 flex-1 items-center justify-center border border-[var(--color-bt-border)] px-3 py-1.5 font-bt-mono text-xs uppercase tracking-[0.12em] text-[var(--color-bt-muted-foreground)] transition-colors duration-150 ease-[var(--ease-bt)] hover:text-[var(--color-bt-foreground)]"
 				>
-					↻ 重新模拟
+					重新模拟
 				</button>
 			</div>
 		</div>

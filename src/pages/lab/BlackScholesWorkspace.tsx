@@ -6,7 +6,7 @@ import {
 	WorkspaceActionMetric,
 	WorkspaceActionsShell,
 } from "@/components/ui/WorkspaceActions";
-import { Sidebar } from "./black-scholes/components/Sidebar";
+import { Sidebar } from "@/pages/lab/black-scholes/components/Sidebar";
 
 interface BlackScholesWorkspaceProps {
 	onSidebar: (node: React.ReactNode) => void;
@@ -16,13 +16,11 @@ interface BlackScholesWorkspaceProps {
 export function BlackScholesWorkspace({ onSidebar, onActions }: BlackScholesWorkspaceProps) {
 	const bs = useBSSession();
 
-	// Inject sidebar
 	// biome-ignore lint/correctness/useExhaustiveDependencies: 依赖 bs 整体
 	useEffect(() => {
 		onSidebar(<Sidebar session={bs} />);
 	}, [bs, onSidebar]);
 
-	// Actions (Header metric results)
 	useEffect(() => {
 		onActions(
 			<WorkspaceActionsShell>
@@ -37,22 +35,24 @@ export function BlackScholesWorkspace({ onSidebar, onActions }: BlackScholesWork
 						{ label: "Δ", val: bs.currentResult.delta },
 						{ label: "Γ", val: bs.currentResult.gamma },
 						{ label: "θ", val: bs.currentResult.theta },
-					].map((g) => (
+					].map((greek) => (
 						<WorkspaceActionMetric
-							key={g.label}
-							label={g.label}
-							value={g.val.toFixed(3)}
+							key={greek.label}
+							label={greek.label}
+							value={greek.val.toFixed(3)}
 							align="start"
 						/>
 					))}
 				</div>
-			</WorkspaceActionsShell>
+			</WorkspaceActionsShell>,
 		);
 	}, [bs.currentResult, onActions]);
 
 	return (
-		<div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
-			<Scene session={bs} isBootstrapping={bs.isBootstrapping} />
+		<div className="relative flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+			<div className="relative min-h-0 flex-1 overflow-hidden border border-[var(--color-bt-border)] bg-[var(--color-bt-background)]">
+				<Scene session={bs} isBootstrapping={bs.isBootstrapping} />
+			</div>
 		</div>
 	);
 }

@@ -26,16 +26,16 @@ interface SidebarProps {
 }
 
 const REGIME_STYLE: Record<string, { color: string; label: string }> = {
-	low: { color: "#00D4AA", label: "低风险" },
-	medium: { color: "#FFB74D", label: "中等风险" },
-	high: { color: "#FF4757", label: "高风险" },
+	low: { color: "var(--color-bt-success)", label: "低风险" },
+	medium: { color: "var(--color-bt-warning)", label: "中等风险" },
+	high: { color: "var(--color-bt-danger)", label: "高风险" },
 };
 
 const PHASE_STYLE: Record<string, { color: string; icon: string }> = {
-	rising: { color: "#FF4757", icon: "⬆️" },
-	falling: { color: "#00D4AA", icon: "⬇️" },
-	shock: { color: "#FFB74D", icon: "⚡" },
-	stable: { color: "#6B7280", icon: "◆" },
+	rising: { color: "var(--color-bt-danger)", icon: "⬆️" },
+	falling: { color: "var(--color-bt-success)", icon: "⬇️" },
+	shock: { color: "var(--color-bt-warning)", icon: "⚡" },
+	stable: { color: "var(--color-bt-muted-foreground)", icon: "◆" },
 };
 
 export function Sidebar({ session }: SidebarProps) {
@@ -204,13 +204,13 @@ export function Sidebar({ session }: SidebarProps) {
 							<div className="space-y-1.5 text-[11px]">
 								<p className="flex items-center justify-between font-bt-mono">
 									<span className="text-[var(--color-bt-muted-foreground)]">Kalman σ</span>
-									<strong className="text-[#00D4AA]">
+									<strong className="text-[var(--color-bt-success)]">
 										{(result.currentVol * 100).toFixed(1)}%
 									</strong>
 								</p>
 								<p className="flex items-center justify-between font-bt-mono">
 									<span className="text-[var(--color-bt-muted-foreground)]">EWMA σ</span>
-									<strong className="text-[#FFB74D]">
+									<strong className="text-[var(--color-bt-warning)]">
 										{(result.ewma.currentVol * 100).toFixed(1)}%
 									</strong>
 								</p>
@@ -221,7 +221,9 @@ export function Sidebar({ session }: SidebarProps) {
 										<span
 											className="ml-1 text-[9px]"
 											style={{
-												color: result.gainDiagnostic.isLagging ? "#FF4757" : "#6B7280",
+												color: result.gainDiagnostic.isLagging
+													? "var(--color-bt-danger)"
+													: "var(--color-bt-muted-foreground)",
 											}}
 										>
 											{result.gainDiagnostic.responsiveness === "fast"
@@ -260,10 +262,10 @@ export function Sidebar({ session }: SidebarProps) {
 										style={{
 											color:
 												result.momentum.kalmanDelta > 0.02
-													? "#FF4757"
+													? "var(--color-bt-danger)"
 													: result.momentum.kalmanDelta < -0.02
-														? "#00D4AA"
-														: "#6B7280",
+														? "var(--color-bt-success)"
+														: "var(--color-bt-muted-foreground)",
 										}}
 									>
 										{result.momentum.kalmanDelta > 0 ? "+" : ""}
@@ -277,10 +279,10 @@ export function Sidebar({ session }: SidebarProps) {
 										style={{
 											color:
 												result.momentum.convergenceRatio > 1.5
-													? "#FF4757"
+													? "var(--color-bt-danger)"
 													: result.momentum.convergenceRatio < 0.9
-														? "#00D4AA"
-														: "#FFB74D",
+														? "var(--color-bt-success)"
+														: "var(--color-bt-warning)",
 										}}
 									>
 										{result.momentum.convergenceRatio.toFixed(2)}x
@@ -298,7 +300,7 @@ export function Sidebar({ session }: SidebarProps) {
 									<span className="text-[var(--color-bt-foreground)]">
 										≤ {result.riskGate.suggestedLeverage.toFixed(1)}x
 										{result.momentum.phase === "rising" ? (
-											<span className="ml-1 text-[#FF4757]">×0.7</span>
+											<span className="ml-1 text-[var(--color-bt-danger)]">×0.7</span>
 										) : null}
 									</span>
 								</p>
@@ -314,9 +316,9 @@ export function Sidebar({ session }: SidebarProps) {
 									<div
 										className="border px-1.5 py-1 font-bt-mono text-[9px]"
 										style={{
-											backgroundColor: "rgba(255, 183, 77, 0.1)",
-											borderColor: "rgba(255, 183, 77, 0.4)",
-											color: "#FFB74D",
+											backgroundColor: "var(--color-bt-warning-soft)",
+											borderColor: "color-mix(in oklab, var(--color-bt-warning) 40%, transparent)",
+											color: "var(--color-bt-warning)",
 										}}
 									>
 										余震期：全部策略强制中性
@@ -380,9 +382,15 @@ function StrategyChip({
 		<span
 			className="flex items-center justify-between border px-2 py-1 font-bt-mono text-[10px] uppercase tracking-[0.08em]"
 			style={{
-				backgroundColor: active ? "rgba(0, 212, 170, 0.12)" : "rgba(107, 114, 128, 0.05)",
-				color: active ? "#00D4AA" : "#6B7280",
-				borderColor: active ? "rgba(0, 212, 170, 0.35)" : "rgba(107, 114, 128, 0.22)",
+				backgroundColor: active
+					? "var(--color-bt-success-soft)"
+					: "color-mix(in oklab, var(--color-bt-muted-foreground) 8%, transparent)",
+				color: active
+					? "var(--color-bt-success)"
+					: "var(--color-bt-muted-foreground)",
+				borderColor: active
+					? "color-mix(in oklab, var(--color-bt-success) 35%, transparent)"
+					: "color-mix(in oklab, var(--color-bt-muted-foreground) 25%, transparent)",
 			}}
 		>
 			<span>{label}</span>
