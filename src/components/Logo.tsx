@@ -2,6 +2,7 @@ interface LogoProps {
 	className?: string;
 	showText?: boolean;
 	size?: "sm" | "md" | "lg";
+	accentColor?: string;
 }
 
 const sizeMap = {
@@ -11,9 +12,9 @@ const sizeMap = {
 };
 
 const textSizeMap = {
-	sm: "text-sm tracking-[0.2em]",
-	md: "text-lg tracking-widest",
-	lg: "text-xl tracking-widest",
+	sm: "text-[13px] tracking-[0.16em]",
+	md: "text-base tracking-[0.18em]",
+	lg: "text-lg tracking-[0.2em]",
 };
 
 import { Link } from "react-router-dom";
@@ -22,11 +23,12 @@ export function RiskFlowLogo({
 	className = "",
 	showText = true,
 	size = "md",
+	accentColor = "#7C4DFF",
 }: LogoProps) {
 	return (
 		<Link
 			to="/"
-			className={`flex items-center gap-2 transition-opacity hover:opacity-80 ${className}`}
+			className={`inline-flex w-fit items-center gap-2 transition-opacity hover:opacity-80 ${className}`}
 		>
 			<svg
 				className={sizeMap[size]}
@@ -37,74 +39,74 @@ export function RiskFlowLogo({
 			>
 				<title>RiskFlow Logo</title>
 				{/* 中心圆 */}
-				<circle cx="20" cy="20" r="6" fill="#7C4DFF" />
+				<circle cx="20" cy="20" r="6" fill={accentColor} />
 				{/* 上方节点 */}
-				<circle cx="20" cy="6" r="4" fill="#7C4DFF" />
+				<circle cx="20" cy="6" r="4" fill={accentColor} />
 				<line
 					x1="20"
 					y1="14"
 					x2="20"
 					y2="10"
-					stroke="#7C4DFF"
+					stroke={accentColor}
 					strokeWidth="2"
 				/>
 				{/* 下方节点 */}
-				<circle cx="20" cy="34" r="4" fill="#7C4DFF" />
+				<circle cx="20" cy="34" r="4" fill={accentColor} />
 				<line
 					x1="20"
 					y1="26"
 					x2="20"
 					y2="30"
-					stroke="#7C4DFF"
+					stroke={accentColor}
 					strokeWidth="2"
 				/>
 				{/* 左上节点 */}
-				<circle cx="8" cy="12" r="4" fill="#7C4DFF" />
+				<circle cx="8" cy="12" r="4" fill={accentColor} />
 				<line
 					x1="14.5"
 					y1="16"
 					x2="11"
 					y2="14"
-					stroke="#7C4DFF"
+					stroke={accentColor}
 					strokeWidth="2"
 				/>
 				{/* 右上节点 */}
-				<circle cx="32" cy="12" r="4" fill="#7C4DFF" />
+				<circle cx="32" cy="12" r="4" fill={accentColor} />
 				<line
 					x1="25.5"
 					y1="16"
 					x2="29"
 					y2="14"
-					stroke="#7C4DFF"
+					stroke={accentColor}
 					strokeWidth="2"
 				/>
 				{/* 左下节点 */}
-				<circle cx="8" cy="28" r="4" fill="#7C4DFF" />
+				<circle cx="8" cy="28" r="4" fill={accentColor} />
 				<line
 					x1="14.5"
 					y1="24"
 					x2="11"
 					y2="26"
-					stroke="#7C4DFF"
+					stroke={accentColor}
 					strokeWidth="2"
 				/>
 				{/* 右下节点 */}
-				<circle cx="32" cy="28" r="4" fill="#7C4DFF" />
+				<circle cx="32" cy="28" r="4" fill={accentColor} />
 				<line
 					x1="25.5"
 					y1="24"
 					x2="29"
 					y2="26"
-					stroke="#7C4DFF"
+					stroke={accentColor}
 					strokeWidth="2"
 				/>
 			</svg>
 			{showText && (
 				<span
-					className={`font-display font-bold ${textSizeMap[size]} text-white/90`}
+					className={`whitespace-nowrap font-bt-sans font-semibold leading-none uppercase ${textSizeMap[size]} text-[var(--color-bt-foreground)]`}
 				>
 					RISKFLOW
-					<span className="text-rf-primary">_LAB</span>
+					<span className="text-[var(--color-bt-accent)]">_LAB</span>
 				</span>
 			)}
 		</Link>

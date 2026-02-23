@@ -15,11 +15,13 @@ export function Surface({ session }: SurfaceProps) {
 	const geometryRef = useRef<THREE.PlaneGeometry>(null);
 
     // Resolve CSS variables for 3D scene
-    const textMutedColor = useCSSVar('--color-text-muted', '#9ca3af');
-    const primaryColor = useCSSVar('--color-rf-primary', '#7c4dff');
-    const wipColor = useCSSVar('--color-rf-wip', '#ffb224');
-    const chart2Color = useCSSVar('--color-rf-chart-2', '#00bfa5');
-    const chart3Color = useCSSVar('--color-rf-chart-3', '#ff6b6b'); // Mapping pink to chart-3
+	const textMutedColor = useCSSVar('--color-bt-muted-foreground', '#737373');
+	const primaryColor = useCSSVar('--color-bt-accent', '#ff3d00');
+	const wipColor = useCSSVar('--color-bt-warning', '#ffb74d');
+	const chart2Color = useCSSVar('--color-bt-success', '#00d4aa');
+	const chart3Color = useCSSVar('--color-bt-danger', '#ff4757');
+	const foregroundColor = useCSSVar('--color-bt-foreground', '#fafafa');
+	const borderColor = useCSSVar('--color-bt-border', '#262626');
 
 	// Grid setup
 	const width = S_RANGE.steps;
@@ -143,7 +145,7 @@ export function Surface({ session }: SurfaceProps) {
 			{/* Wireframe Overlay - Subtle */}
 			<mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.99, 0]}>
 				<planeGeometry args={[10, 10, width - 1, height - 1]} />
-				<meshBasicMaterial color="#ffffff" wireframe transparent opacity={0.05} />
+				<meshBasicMaterial color={foregroundColor} wireframe transparent opacity={0.05} />
 			</mesh>
 
 			{/* Reference Lines Rendering */}
@@ -171,13 +173,13 @@ export function Surface({ session }: SurfaceProps) {
 				{/* The Ball - Lifted logic applied in markerPos */}
 				<mesh position={markerPos}>
 					<sphereGeometry args={[0.2, 32, 32]} />
-					<meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.5} />
+					<meshStandardMaterial color={foregroundColor} emissive={foregroundColor} emissiveIntensity={0.5} />
 				</mesh>
 
 				{/* Pulsing Aura */}
 				<mesh position={markerPos}>
 					<sphereGeometry args={[0.35, 32, 32]} />
-					<meshBasicMaterial color="#ffffff" transparent opacity={0.2} depthWrite={false} />
+					<meshBasicMaterial color={foregroundColor} transparent opacity={0.2} depthWrite={false} />
 				</mesh>
 
 				{/* Projection Lines - Dropping to floor (-2 relative to world 0, but marker is relative to group at -2)
@@ -204,13 +206,13 @@ export function Surface({ session }: SurfaceProps) {
 							]), 3]}
 						/>
 					</bufferGeometry>
-					<lineDashedMaterial attach="material" color="#ffffff" transparent opacity={0.3} dashSize={0.2} gapSize={0.1} />
+					<lineDashedMaterial attach="material" color={foregroundColor} transparent opacity={0.3} dashSize={0.2} gapSize={0.1} />
 				</line>
 				
 				{/* Tooltip on the marker - Simplified */}
 				<Html position={[markerPos.x, markerPos.y + 0.5, markerPos.z]} center zIndexRange={[100, 0]}>
-					<div className="pointer-events-none select-none px-3 py-1.5 bg-rf-surface-solid/90 border border-white/20 rounded-md font-mono text-xs text-rf-text-primary shadow-xl backdrop-blur-md">
-						<span className="font-bold text-rf-secondary">{activeMetric.toUpperCase()}</span>: <span className="text-white">{currentResult[activeMetric as keyof typeof currentResult].toFixed(4)}</span>
+					<div className="pointer-events-none select-none border px-3 py-1.5 font-bt-mono text-xs text-[var(--color-bt-foreground)] shadow-xl backdrop-blur-md" style={{ background: "var(--color-bt-overlay)", borderColor }}>
+						<span className="font-semibold text-[var(--color-bt-accent)]">{activeMetric.toUpperCase()}</span>: <span>{currentResult[activeMetric as keyof typeof currentResult].toFixed(4)}</span>
 					</div>
 				</Html>
 			</group>
@@ -301,7 +303,7 @@ function SideWalls({
 	}, [surfaceData, width, height, scaleX, scaleZ, yScale]);
 
 	// Resolve color for side walls
-    const accentPurpleColor = useCSSVar('--color-accent-purple', '#7c3aed');
+	const accentPurpleColor = useCSSVar('--color-bt-accent', '#ff3d00');
 
 	return (
 		<mesh geometry={geometry}>

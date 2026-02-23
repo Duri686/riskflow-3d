@@ -15,6 +15,7 @@ import {
 	isAlgorithmId,
 } from "@/algorithms/registry";
 import { MaterialIcon, RiskFlowLogo } from "@/components/Logo";
+import { BtButton } from "@/components/ui/BtButton";
 import { KalmanWorkspace } from "./KalmanWorkspace";
 import { MonteCarloWorkspace } from "./MonteCarloWorkspace";
 import { BlackScholesWorkspace } from "./BlackScholesWorkspace";
@@ -103,7 +104,7 @@ export function LabLayout() {
 	}, [switchTab]);
 
 	/* ─── 滑动指示器：ref 测量实际宽度和位置 ─── */
-	const tabRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+	const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 	const [indicator, setIndicator] = useState({ left: 0, width: 0 });
 	const activeIndex = ALGORITHM_CATALOG.findIndex((a) => a.id === activeId);
 
@@ -115,90 +116,76 @@ export function LabLayout() {
 	}, [activeIndex]);
 
 	return (
-		<div className="flex h-screen w-full flex-col bg-rf-bg pt-14 font-body text-white selection:bg-rf-primary selection:text-white">
+		<div className="flex h-screen w-full flex-col bg-rf-bg pt-16 font-body text-white selection:bg-[var(--color-bt-accent)] selection:text-[var(--color-bt-accent-foreground)]">
 			{/* 扫描线覆盖层 */}
 			<div className="scanlines pointer-events-none fixed inset-0 z-50 opacity-10" />
 
 			{/* ════════ 顶部导航栏（固定，永不卸载） ════════ */}
-			<header className="fixed inset-x-0 top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-rf-surface-solid/80 px-6 backdrop-blur-md">
-				<div className="flex items-center gap-3">
-					<RiskFlowLogo
-						size="sm"
-						showText={true}
-						className="flex items-center justify-center p-0"
-					/>
-				</div>
-				{/* ═══════ Tab Switch (弹性动画) ═══════ */}
-				<nav className="ml-4 flex flex-1 items-center overflow-x-auto">
-					{/* 药丸形容器 */}
-					<div
-						className="inline-flex items-center rounded-full p-1"
-						style={{ background: "rgba(255, 255, 255, 0.06)" }}
-					>
-						<div className="relative flex items-stretch">
-							{/* 滑动指示器 — 宽度和位置跟随 active tab */}
+			<header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--color-bt-border)] bg-[var(--color-bt-background)] backdrop-blur-md">
+				<div className="relative flex h-16 items-center gap-4 px-4 sm:px-6 lg:px-10">
+					<div className="pointer-events-none absolute inset-0 opacity-50">
+						<div className="bt-noise-overlay" />
+					</div>
+
+					<div className="relative z-10 flex shrink-0 items-center gap-3">
+						<span className="h-4 w-[2px] bg-[var(--color-bt-accent)]" />
+						<RiskFlowLogo
+							size="sm"
+							showText={true}
+							accentColor="var(--color-bt-accent)"
+							className="flex items-center justify-center p-0 text-[var(--color-bt-foreground)]"
+						/>
+					</div>
+
+					<nav className="relative z-10 min-w-0 flex-1 overflow-x-auto">
+						<div className="relative flex min-w-max items-stretch gap-1 border-b border-[var(--color-bt-border)] pb-1">
 							<div
-								className="pointer-events-none absolute inset-y-0 rounded-full"
+								className="pointer-events-none absolute bottom-0 h-[2px] bg-[var(--color-bt-accent)] transition-[left,width] duration-200 ease-[var(--ease-bt)]"
 								style={{
 									width: indicator.width,
 									left: indicator.left,
-									transition:
-										"left cubic-bezier(.88, -.35, .565, 1.35) 0.4s, width cubic-bezier(.88, -.35, .565, 1.35) 0.4s",
-									background:
-										"linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)",
-									boxShadow: "0 2px 15px 0 rgba(139, 92, 246, 0.25)",
 								}}
 							/>
+
 							{ALGORITHM_CATALOG.map((algo, index) => {
 								const isActive = algo.id === activeId;
 								return (
-									<a
+									<button
 										ref={(el) => {
 											tabRefs.current[index] = el;
 										}}
-										role="button"
-										tabIndex={0}
+										type="button"
 										key={algo.id}
 										onClick={() => switchTab(algo.id)}
-										onKeyDown={(e) => {
-											if (e.key === "Enter" || e.key === " ") {
-												e.preventDefault();
-												switchTab(algo.id);
-											}
-										}}
-										className={`relative z-10 flex h-8 cursor-pointer select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-5 text-xs transition-colors duration-200 ${
+										className={`relative z-10 inline-flex h-9 items-center gap-2 border-0 bg-transparent px-2 pb-1 font-bt-mono text-[10px] font-medium uppercase tracking-[0.1em] transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-bt-ring)] ${
 											isActive
-												? "text-white font-bold"
-												: "text-gray-500 hover:text-gray-300 font-medium"
+												? "text-[var(--color-bt-foreground)]"
+												: "text-[var(--color-bt-muted-foreground)] hover:text-[var(--color-bt-foreground)]"
 										}`}
 									>
-										<span className="opacity-40 text-xs">
+										<span className="text-[9px] tracking-[0.2em] opacity-70">
 											{String(index + 1).padStart(2, "0")}
 										</span>
-										{algo.title.toUpperCase()}
-									</a>
+										{algo.title}
+									</button>
 								);
 							})}
 						</div>
-					</div>
-				</nav>
-				<div className="flex items-center gap-4">
-					<div className="flex items-center gap-2">
-						<button
-							type="button"
+					</nav>
+
+					<div className="relative z-10 flex shrink-0 items-center gap-2">
+						<BtButton
+							variant="ghost"
+							size="icon"
 							onClick={() => setRightPanelCollapsed(!isRightCollapsed)}
-							className={`flex h-8 w-8 items-center justify-center rounded border bg-transparent transition-colors ${
-								isRightCollapsed
-									? "border-rf-primary/50 text-rf-primary"
-									: "border-white/10 text-gray-400 hover:bg-white/5"
-							}`}
 							title={isRightCollapsed ? "显示参数面板" : "隐藏参数面板"}
+							className={isRightCollapsed ? "text-[var(--color-bt-accent)]" : undefined}
 						>
 							<MaterialIcon
 								name={isRightCollapsed ? "dock_to_left" : "dock_to_right"}
-								className="text-base"
+								className="text-lg"
 							/>
-						</button>
+						</BtButton>
 						{actions}
 					</div>
 				</div>

@@ -1,5 +1,6 @@
 import { ShieldAlert, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
 import type { MonteCarloMetricsPanel } from "@/algorithms/monte-carlo/engine";
+import { BtSectionHeading } from "@/components/ui/BtSectionHeading";
 
 interface RiskCardProps {
   metrics: MonteCarloMetricsPanel;
@@ -15,31 +16,31 @@ function getVerdict(
     return {
       icon: ShieldCheck,
       text: "风险可控，正向预期",
-      color: "text-accent-green",
-      bg: "bg-accent-green/10 border-accent-green/30",
+      colorClass: "text-[#00d4aa]",
+      panelClass: "border-[#00d4aa]/40 bg-[#00d4aa]/10",
     };
   }
   if (winRate >= 0.5 && medianReturn > 0) {
     return {
       icon: TrendingUp,
       text: "中性偏多，注意仓位",
-      color: "text-accent-green",
-      bg: "bg-accent-green/10 border-accent-green/30",
+      colorClass: "text-[#00d4aa]",
+      panelClass: "border-[#00d4aa]/40 bg-[#00d4aa]/10",
     };
   }
   if (winRate >= 0.4) {
     return {
       icon: ShieldAlert,
       text: "风险较高，建议观望",
-      color: "text-yellow-400",
-      bg: "bg-yellow-400/10 border-yellow-400/30",
+      colorClass: "text-[#ffb74d]",
+      panelClass: "border-[#ffb74d]/40 bg-[#ffb74d]/10",
     };
   }
   return {
     icon: TrendingDown,
     text: "风险极高，不建议入场",
-    color: "text-accent-red",
-    bg: "bg-accent-red/10 border-accent-red/30",
+    colorClass: "text-[#ff4757]",
+    panelClass: "border-[#ff4757]/40 bg-[#ff4757]/10",
   };
 }
 
@@ -53,53 +54,49 @@ export function RiskCard({ metrics }: RiskCardProps) {
   const VerdictIcon = verdict.icon;
 
   return (
-    <div className="p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-1.5 font-display text-xs font-bold tracking-widest text-white">
-          <ShieldAlert className="h-3.5 w-3.5 text-accent-purple" />
-          风险评估
-        </h2>
-      </div>
+    <section className="border-b border-[var(--color-bt-border)] px-4 py-5">
+      <BtSectionHeading
+        title="Risk Verdict"
+        icon={<ShieldAlert className="h-3.5 w-3.5" strokeWidth={1.5} />}
+      />
 
-      {/* 综合评价卡片 */}
       <div
-        className={`mb-3 flex items-center gap-2 rounded border p-2.5 ${verdict.bg}`}
+        className={`mt-4 flex items-center gap-2 border px-3 py-2 ${verdict.panelClass}`}
       >
-        <VerdictIcon className={`h-4 w-4 shrink-0 ${verdict.color}`} />
-        <span className={`font-display text-xs font-bold ${verdict.color}`}>
+        <VerdictIcon className={`h-4 w-4 shrink-0 ${verdict.colorClass}`} strokeWidth={1.5} />
+        <span className={`font-bt-sans text-sm font-semibold ${verdict.colorClass}`}>
           {verdict.text}
         </span>
       </div>
 
-      {/* 关键指标 */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between font-mono text-[10px]">
-          <span className="text-text-muted">当前均价</span>
-          <span className="font-semibold text-white">
+      <div className="mt-4 space-y-2">
+        <div className="flex items-center justify-between border-b border-[var(--color-bt-border)] pb-2 font-bt-mono text-[10px] uppercase tracking-[0.12em]">
+          <span className="text-[var(--color-bt-muted-foreground)]">当前均价</span>
+          <span className="font-semibold text-[var(--color-bt-foreground)]">
             ${metrics.current.meanPrice.toFixed(2)}
           </span>
         </div>
-        <div className="flex items-center justify-between font-mono text-[10px]">
-          <span className="text-text-muted">价格区间 (5~95%)</span>
-          <span className="text-white">
-            <span className="text-accent-red">
+        <div className="flex items-center justify-between border-b border-[var(--color-bt-border)] pb-2 font-bt-mono text-[10px] uppercase tracking-[0.12em]">
+          <span className="text-[var(--color-bt-muted-foreground)]">价格区间 5~95%</span>
+          <span className="text-[var(--color-bt-foreground)]">
+            <span className="text-[#ff4757]">
               ${metrics.current.p05Price.toFixed(0)}
             </span>
-            <span className="text-text-muted"> ~ </span>
-            <span className="text-accent-green">
+            <span className="text-[var(--color-bt-muted-foreground)]"> ~ </span>
+            <span className="text-[#00d4aa]">
               ${metrics.current.p95Price.toFixed(0)}
             </span>
           </span>
         </div>
-        <div className="flex items-center justify-between font-mono text-[10px]">
-          <span className="text-text-muted">盈亏比</span>
+        <div className="flex items-center justify-between font-bt-mono text-[10px] uppercase tracking-[0.12em]">
+          <span className="text-[var(--color-bt-muted-foreground)]">盈亏比</span>
           <span
-            className={`font-semibold ${(metrics.final.upDownRatio ?? 0) >= 1 ? "text-accent-green" : "text-accent-red"}`}
+            className={`font-semibold ${(metrics.final.upDownRatio ?? 0) >= 1 ? "text-[#00d4aa]" : "text-[#ff4757]"}`}
           >
             {(metrics.final.upDownRatio ?? 0).toFixed(2)}
           </span>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

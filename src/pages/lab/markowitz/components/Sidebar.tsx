@@ -1,9 +1,9 @@
-import { MetricsPanel } from "@/algorithms/markowitz/MetricsPanel"
-import { ParamsPanel } from "@/algorithms/markowitz/ParamsPanel"
-import type { MarkowitzSession } from "@/algorithms/markowitz/useSession"
+import { MetricsPanel } from "@/algorithms/markowitz/MetricsPanel";
+import { ParamsPanel } from "@/algorithms/markowitz/ParamsPanel";
+import type { MarkowitzSession } from "@/algorithms/markowitz/useSession";
 
 interface SidebarProps {
-  session: MarkowitzSession
+  session: MarkowitzSession;
 }
 
 export function Sidebar({ session }: SidebarProps) {
@@ -12,5 +12,5 @@ export function Sidebar({ session }: SidebarProps) {
       <ParamsPanel session={session} />
       <MetricsPanel metrics={session.metrics} assets={session.assets} />
     </div>
-  )
+  );
 }

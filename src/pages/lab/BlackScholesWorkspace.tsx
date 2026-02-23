@@ -1,6 +1,11 @@
 import { useEffect } from "react";
 import { useBSSession } from "@/algorithms/black-scholes/useSession";
 import { Scene } from "@/algorithms/black-scholes/Scene";
+import {
+	WorkspaceActionDivider,
+	WorkspaceActionMetric,
+	WorkspaceActionsShell,
+} from "@/components/ui/WorkspaceActions";
 import { Sidebar } from "./black-scholes/components/Sidebar";
 
 interface BlackScholesWorkspaceProps {
@@ -20,35 +25,34 @@ export function BlackScholesWorkspace({ onSidebar, onActions }: BlackScholesWork
 	// Actions (Header metric results)
 	useEffect(() => {
 		onActions(
-			<div className="flex items-center gap-4 mr-2">
-				<div className="flex flex-col items-end">
-					<span className="text-[10px] uppercase text-gray-400 font-mono tracking-wider">Option Price</span>
-					<span className="text-rf-primary font-bold font-display text-sm">
-						{bs.currentResult.price.toFixed(4)}
-					</span>
-				</div>
-				<div className="h-6 w-px bg-white/10" />
+			<WorkspaceActionsShell>
+				<WorkspaceActionMetric
+					label="Option Price"
+					value={bs.currentResult.price.toFixed(4)}
+					tone="accent"
+				/>
+				<WorkspaceActionDivider />
 				<div className="flex items-center gap-3">
 					{[
 						{ label: "Δ", val: bs.currentResult.delta },
 						{ label: "Γ", val: bs.currentResult.gamma },
 						{ label: "θ", val: bs.currentResult.theta },
 					].map((g) => (
-						<div key={g.label} className="flex flex-col items-start min-w-[32px]">
-							<span className="text-[10px] uppercase text-gray-500 font-mono">{g.label}</span>
-							<span className="text-white text-[11px] font-mono font-bold">
-								{g.val.toFixed(3)}
-							</span>
-						</div>
+						<WorkspaceActionMetric
+							key={g.label}
+							label={g.label}
+							value={g.val.toFixed(3)}
+							align="start"
+						/>
 					))}
 				</div>
-			</div>
+			</WorkspaceActionsShell>
 		);
 	}, [bs.currentResult, onActions]);
 
 	return (
 		<div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
-			<Scene session={bs} />
+			<Scene session={bs} isBootstrapping={bs.isBootstrapping} />
 		</div>
 	);
 }

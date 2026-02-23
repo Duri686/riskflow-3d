@@ -15,6 +15,9 @@ interface BuildQuantileMarkersArgs {
 	p05Price: number;
 	meanPrice: number;
 	p95Price: number;
+	p05Color?: string;
+	p50Color?: string;
+	p95Color?: string;
 }
 
 const SCENE_X_SPAN = 26;
@@ -54,9 +57,9 @@ export function buildQuantileMarkers(
 		price: number;
 		color: string;
 	}> = [
-		{ key: "p5", prefix: "P5", price: args.p05Price, color: "#ff6b6b" },
-		{ key: "p50", prefix: "P50", price: args.meanPrice, color: "#ffffff" },
-		{ key: "p95", prefix: "P95", price: args.p95Price, color: "#22d3ee" },
+		{ key: "p5", prefix: "P5", price: args.p05Price, color: args.p05Color ?? "#ff6b6b" },
+		{ key: "p50", prefix: "P50", price: args.meanPrice, color: args.p50Color ?? "#ffffff" },
+		{ key: "p95", prefix: "P95", price: args.p95Price, color: args.p95Color ?? "#22d3ee" },
 	];
 
 	return specs.map((spec) => {

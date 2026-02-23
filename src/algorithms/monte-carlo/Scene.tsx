@@ -2,6 +2,7 @@ import { Billboard, Grid, OrbitControls, Text, Line } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { useEffect, useRef, useMemo } from 'react'
 import type { BufferGeometry } from 'three'
+import { useCSSVar } from '@/hooks/useCSSVar'
 import type { MonteCarloRenderLayer } from './engine'
 import type { QuantileMarker } from './sceneMarkers'
 
@@ -52,7 +53,17 @@ function PathCloudPoints({ layer }: PathCloudSceneProps) {
   )
 }
 
-function AxisLabels() {
+function AxisLabels({
+  mutedColor,
+  foregroundColor,
+  gainColor,
+  lossColor,
+}: {
+  mutedColor: string
+  foregroundColor: string
+  gainColor: string
+  lossColor: string
+}) {
   const timeLabels = useMemo(() => ['起点', '25%', '50%', '75%', '到期'], [])
   const priceLabels = useMemo(() => ['+50%', '+25%', '基准', '-25%', '-50%'], [])
 
@@ -64,12 +75,12 @@ function AxisLabels() {
           key={`time-${i}`}
           position={[-13 + i * 6.5, -8, 9]}
           fontSize={0.6}
-          color="#6B7280"
+          color={mutedColor}
         >
           {label}
         </FacingText>
       ))}
-      <FacingText position={[0, -8.5, 12]} fontSize={0.7} color="#9CA3AF" anchorX="center">
+      <FacingText position={[0, -8.5, 12]} fontSize={0.7} color={mutedColor} anchorX="center">
         时间维度
       </FacingText>
 
@@ -79,30 +90,30 @@ function AxisLabels() {
           key={`price-${i}`}
           position={[-15, 7 - i * 3.5, 0]}
           fontSize={0.5}
-          color={i < 2 ? '#22D3EE' : i === 2 ? '#FFFFFF' : '#A855F7'}
+          color={i < 2 ? gainColor : i === 2 ? foregroundColor : lossColor}
           anchorX="right"
         >
           {label}
         </FacingText>
       ))}
-      <FacingText position={[-15, 9, 0]} fontSize={0.7} color="#9CA3AF" anchorX="right">
+      <FacingText position={[-15, 9, 0]} fontSize={0.7} color={mutedColor} anchorX="right">
         收益率
       </FacingText>
 
       {/* 基准线 (Y=0) */}
       <Line
         points={[[-13, 0, -8], [13, 0, -8], [13, 0, 8], [-13, 0, 8], [-13, 0, -8]]}
-        color="#FFFFFF"
+        color={foregroundColor}
         lineWidth={1}
         opacity={0.3}
         transparent
       />
 
       {/* 涨跌区域标注 */}
-      <FacingText position={[14, 5, 0]} fontSize={0.8} color="#22D3EE" anchorX="left">
+      <FacingText position={[14, 5, 0]} fontSize={0.8} color={gainColor} anchorX="left">
         盈利区
       </FacingText>
-      <FacingText position={[14, -5, 0]} fontSize={0.8} color="#A855F7" anchorX="left">
+      <FacingText position={[14, -5, 0]} fontSize={0.8} color={lossColor} anchorX="left">
         亏损区
       </FacingText>
     </group>
@@ -143,20 +154,29 @@ function QuantileGuides({ markers = [] }: { markers?: QuantileMarker[] }) {
 }
 
 export function MonteCarloScene({ layer, markers = [] }: PathCloudSceneProps) {
+  const backgroundColor = useCSSVar('--color-bt-background', '#0a0a0a')
+  const mutedColor = useCSSVar('--color-bt-muted-foreground', '#737373')
+  const foregroundColor = useCSSVar('--color-bt-foreground', '#fafafa')
+  const gainColor = useCSSVar('--color-bt-success', '#00d4aa')
+  const lossColor = useCSSVar('--color-bt-danger', '#ff4757')
+  const accentColor = useCSSVar('--color-bt-accent', '#ff3d00')
+  const gridCellColor = useCSSVar('--color-bt-border', '#262626')
+  const gridSectionColor = useCSSVar('--color-bt-muted', '#1a1a1a')
+
   return (
     <Canvas camera={{ position: [22, 10, 22], fov: 45 }} dpr={[1, 2]}>
-      <color attach="background" args={['#02050f']} />
-      <fog attach="fog" args={['#02050f', 20, 55]} />
+      <color attach="background" args={[backgroundColor]} />
+      <fog attach="fog" args={[backgroundColor, 20, 55]} />
       <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 12, 5]} intensity={1.2} color="#d8f0ff" />
-      <directionalLight position={[-8, 6, -10]} intensity={0.5} color="#7ba2d3" />
+      <directionalLight position={[10, 12, 5]} intensity={1.2} color={foregroundColor} />
+      <directionalLight position={[-8, 6, -10]} intensity={0.5} color={accentColor} />
 
       {/* 底部网格 */}
       <Grid
         position={[0, -7.5, 0]}
         args={[30, 18]}
-        cellColor="#1a2a3d"
-        sectionColor="#2d4a6d"
+        cellColor={gridCellColor}
+        sectionColor={gridSectionColor}
         fadeDistance={45}
         fadeStrength={1.2}
         cellThickness={0.3}
@@ -165,7 +185,12 @@ export function MonteCarloScene({ layer, markers = [] }: PathCloudSceneProps) {
       />
 
       {/* 坐标轴和标签 */}
-      <AxisLabels />
+      <AxisLabels
+        mutedColor={mutedColor}
+        foregroundColor={foregroundColor}
+        gainColor={gainColor}
+        lossColor={lossColor}
+      />
       <QuantileGuides markers={markers} />
 
       {/* 点云数据 */}

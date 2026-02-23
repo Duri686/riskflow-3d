@@ -5,9 +5,10 @@ import type { useBSSession } from "@/algorithms/black-scholes/useSession";
 
 interface SceneProps {
 	session: ReturnType<typeof useBSSession>;
+	isBootstrapping?: boolean;
 }
 
-export function Scene({ session }: SceneProps) {
+export function Scene({ session, isBootstrapping = false }: SceneProps) {
 	return (
 		<div className="absolute inset-0 z-0">
 			<Canvas shadows gl={{ antialias: true, alpha: true }}>
@@ -42,6 +43,19 @@ export function Scene({ session }: SceneProps) {
 					infiniteGrid
 				/>
 			</Canvas>
+			{isBootstrapping ? (
+				<div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[var(--color-bt-background)]/18">
+					<div className="flex flex-col items-center gap-3">
+						<div className="relative h-8 w-8">
+							<div className="absolute inset-0 rounded-full border border-[var(--color-bt-accent)]/30" />
+							<div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-r-[var(--color-bt-accent)] border-t-[var(--color-bt-accent)]" />
+						</div>
+						<p className="font-bt-mono text-xs text-[var(--color-bt-muted-foreground)]">
+							正在计算期权曲面...
+						</p>
+					</div>
+				</div>
+			) : null}
 		</div>
 	);
 }

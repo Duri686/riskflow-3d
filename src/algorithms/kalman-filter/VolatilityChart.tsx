@@ -13,17 +13,28 @@ const MARGIN = { top: 40, right: 30, bottom: 50, left: 60 };
 
 // ── Regime 颜色映射 ──
 const REGIME_COLORS: Record<VolRegime, { bg: string }> = {
-	low: { bg: "rgba(0, 212, 170, 0.06)" },
-	medium: { bg: "rgba(255, 183, 77, 0.06)" },
-	high: { bg: "rgba(255, 71, 87, 0.06)" },
+	low: { bg: "var(--color-bt-success-soft)" },
+	medium: { bg: "var(--color-bt-warning-soft)" },
+	high: { bg: "var(--color-bt-danger-soft)" },
 };
 
 // ── Phase 颜色映射 ──
 const PHASE_COLORS: Record<string, string> = {
-	rising: "#FF4757",
-	falling: "#00D4AA",
-	shock: "#FFB74D",
-	stable: "#6B7280",
+	rising: "var(--color-bt-danger)",
+	falling: "var(--color-bt-success)",
+	shock: "var(--color-bt-warning)",
+	stable: "var(--color-bt-muted-foreground)",
+};
+
+const CHART_COLORS = {
+	grid: "var(--color-bt-border)",
+	axis: "var(--color-bt-muted-foreground)",
+	observed: "var(--color-bt-muted-foreground)",
+	kalman: "var(--color-bt-success)",
+	ewma: "var(--color-bt-warning)",
+	thresholdMid: "var(--color-bt-warning)",
+	thresholdHigh: "var(--color-bt-danger)",
+	band: "var(--color-bt-success)",
 };
 
 export function VolatilityChart({
@@ -51,7 +62,8 @@ export function VolatilityChart({
 
 	const { steps, regimeHistory, ewma } = result;
 	const hasData = steps.length >= 2;
-	const phaseColor = PHASE_COLORS[result.momentum.phase] ?? "#6B7280";
+	const phaseColor =
+		PHASE_COLORS[result.momentum.phase] ?? "var(--color-bt-muted-foreground)";
 
 	const chart = useMemo(() => {
 		if (!hasData) return null;
@@ -197,15 +209,15 @@ export function VolatilityChart({
 				{isBootstrapping ? (
 					<div className="flex flex-col items-center gap-3">
 						<div className="relative h-8 w-8">
-							<div className="absolute inset-0 rounded-full border border-rf-accent/30" />
-							<div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-rf-accent border-r-rf-accent" />
+							<div className="absolute inset-0 rounded-full border border-[var(--color-bt-accent)]/30" />
+							<div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-r-[var(--color-bt-accent)] border-t-[var(--color-bt-accent)]" />
 						</div>
-						<p className="font-mono text-xs text-gray-400">
+						<p className="font-bt-mono text-xs text-[var(--color-bt-muted-foreground)]">
 							正在拉取日线数据并初始化滤波器...
 						</p>
 					</div>
 				) : (
-					<p className="font-mono text-sm text-gray-500">
+					<p className="font-bt-mono text-sm text-[var(--color-bt-muted-foreground)]">
 						获取数据后显示波动率估计
 					</p>
 				)}
@@ -248,7 +260,7 @@ export function VolatilityChart({
 						y1={chart.yScale(v)}
 						x2={MARGIN.left + chart.W}
 						y2={chart.yScale(v)}
-						stroke="#1f2937"
+						stroke={CHART_COLORS.grid}
 						strokeDasharray="2,4"
 					/>
 				))}
@@ -261,7 +273,7 @@ export function VolatilityChart({
 							y1={chart.yScale(t.val)}
 							x2={MARGIN.left + chart.W}
 							y2={chart.yScale(t.val)}
-							stroke={t.val === 0.4 ? "#FFB74D" : "#FF4757"}
+							stroke={t.val === 0.4 ? CHART_COLORS.thresholdMid : CHART_COLORS.thresholdHigh}
 							strokeWidth={1}
 							strokeDasharray="6,4"
 							strokeOpacity={0.5}
@@ -269,7 +281,7 @@ export function VolatilityChart({
 						<text
 							x={MARGIN.left + chart.W - 4}
 							y={chart.yScale(t.val) - 4}
-							fill={t.val === 0.4 ? "#FFB74D" : "#FF4757"}
+							fill={t.val === 0.4 ? CHART_COLORS.thresholdMid : CHART_COLORS.thresholdHigh}
 							fontSize={8}
 							fontFamily="monospace"
 							textAnchor="end"
@@ -281,13 +293,13 @@ export function VolatilityChart({
 				))}
 
 				{/* 置信带 */}
-				<path d={chart.bandPath} fill="#00D4AA" fillOpacity={0.08} />
+				<path d={chart.bandPath} fill={CHART_COLORS.band} fillOpacity={0.08} />
 
 				{/* 观测折线（原始噪声） */}
 				<path
 					d={chart.observedPath}
 					fill="none"
-					stroke="#6B7280"
+					stroke={CHART_COLORS.observed}
 					strokeWidth={0.8}
 					strokeOpacity={0.4}
 				/>
@@ -296,7 +308,7 @@ export function VolatilityChart({
 				<path
 					d={chart.ewmaPath}
 					fill="none"
-					stroke="#FFB74D"
+					stroke={CHART_COLORS.ewma}
 					strokeWidth={1.5}
 					strokeDasharray="4,3"
 					strokeOpacity={0.8}
@@ -306,7 +318,7 @@ export function VolatilityChart({
 				<path
 					d={chart.estimatedPath}
 					fill="none"
-					stroke="#00D4AA"
+					stroke={CHART_COLORS.kalman}
 					strokeWidth={2}
 				/>
 
@@ -316,14 +328,14 @@ export function VolatilityChart({
 					y1={MARGIN.top}
 					x2={MARGIN.left}
 					y2={MARGIN.top + chart.H}
-					stroke="#374151"
+					stroke={CHART_COLORS.grid}
 				/>
 				{chart.yTicks.map((v) => (
 					<text
 						key={v}
 						x={MARGIN.left - 8}
 						y={chart.yScale(v) + 3}
-						fill="#6B7280"
+						fill={CHART_COLORS.axis}
 						fontSize={9}
 						textAnchor="end"
 						fontFamily="monospace"
@@ -338,14 +350,14 @@ export function VolatilityChart({
 					y1={MARGIN.top + chart.H}
 					x2={MARGIN.left + chart.W}
 					y2={MARGIN.top + chart.H}
-					stroke="#374151"
+					stroke={CHART_COLORS.grid}
 				/>
 				{chart.xTicks.map((t) => (
 					<text
 						key={t}
 						x={chart.xScale(t)}
 						y={MARGIN.top + chart.H + 18}
-						fill="#6B7280"
+						fill={CHART_COLORS.axis}
 						fontSize={9}
 						textAnchor="middle"
 						fontFamily="monospace"
@@ -358,7 +370,7 @@ export function VolatilityChart({
 				<text
 					x={MARGIN.left + chart.W / 2}
 					y={size.height - 8}
-					fill="#6B7280"
+					fill={CHART_COLORS.axis}
 					fontSize={11}
 					textAnchor="middle"
 				>
@@ -367,7 +379,7 @@ export function VolatilityChart({
 				<text
 					x={14}
 					y={MARGIN.top + chart.H / 2}
-					fill="#6B7280"
+					fill={CHART_COLORS.axis}
 					fontSize={11}
 					textAnchor="middle"
 					transform={`rotate(-90, 14, ${MARGIN.top + chart.H / 2})`}
@@ -382,11 +394,11 @@ export function VolatilityChart({
 						y1={0}
 						x2={20}
 						y2={0}
-						stroke="#6B7280"
+						stroke={CHART_COLORS.observed}
 						strokeWidth={1}
 						strokeOpacity={0.5}
 					/>
-					<text x={25} y={3} fill="#6B7280" fontSize={9}>
+					<text x={25} y={3} fill={CHART_COLORS.axis} fontSize={9}>
 						原始观测 |r_t|
 					</text>
 
@@ -395,10 +407,10 @@ export function VolatilityChart({
 						y1={16}
 						x2={20}
 						y2={16}
-						stroke="#00D4AA"
+						stroke={CHART_COLORS.kalman}
 						strokeWidth={2}
 					/>
-					<text x={25} y={19} fill="#00D4AA" fontSize={9}>
+					<text x={25} y={19} fill={CHART_COLORS.kalman} fontSize={9}>
 						Kalman σ̂
 					</text>
 
@@ -407,11 +419,11 @@ export function VolatilityChart({
 						y1={32}
 						x2={20}
 						y2={32}
-						stroke="#FFB74D"
+						stroke={CHART_COLORS.ewma}
 						strokeWidth={1.5}
 						strokeDasharray="4,3"
 					/>
-					<text x={25} y={35} fill="#FFB74D" fontSize={9}>
+					<text x={25} y={35} fill={CHART_COLORS.ewma} fontSize={9}>
 						EWMA 20d
 					</text>
 
@@ -420,10 +432,10 @@ export function VolatilityChart({
 						y={44}
 						width={20}
 						height={8}
-						fill="#00D4AA"
+						fill={CHART_COLORS.band}
 						fillOpacity={0.15}
 					/>
-					<text x={25} y={51} fill="#6B7280" fontSize={9}>
+					<text x={25} y={51} fill={CHART_COLORS.axis} fontSize={9}>
 						置信区间
 					</text>
 

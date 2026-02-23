@@ -12,6 +12,9 @@ import {
 import { buildMonteCarloDataBadge } from "@/algorithms/monte-carlo/viewMeta";
 import { ReturnDistribution } from "@/algorithms/monte-carlo/ReturnDistribution";
 import { MaterialIcon } from "@/components/Logo";
+import { BtButton } from "@/components/ui/BtButton";
+import { WorkspaceActionsShell } from "@/components/ui/WorkspaceActions";
+import { useCSSVar } from "@/hooks/useCSSVar";
 import { Sidebar } from "./monte-carlo/components/Sidebar";
 import { Footer } from "./monte-carlo/components/Footer";
 import { TRADING_DAYS_PER_YEAR } from "@/algorithms/shared/constants";
@@ -42,32 +45,35 @@ function ConclusionStrip({
 }) {
   const toneClass =
     stateTone === "bullish"
-      ? "text-rf-accent"
+      ? "text-[var(--color-bt-accent)]"
       : stateTone === "bearish"
-        ? "text-rf-chart-3"
-        : "text-white";
+        ? "text-[var(--color-bt-danger)]"
+        : "text-[var(--color-bt-foreground)]";
 
   return (
-    <div className="rounded-full bg-black/38 px-4 py-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.26)] backdrop-blur-sm">
-      <div className="flex flex-wrap items-center justify-center gap-2.5 font-mono text-[10px] text-gray-300">
+    <div
+      className="border border-[var(--color-bt-border)] bg-[var(--color-bt-overlay)] px-4 py-1.5 backdrop-blur-sm"
+      style={{ boxShadow: "var(--shadow-bt-overlay)" }}
+    >
+      <div className="flex items-center gap-2.5 overflow-hidden whitespace-nowrap font-bt-mono text-[10px] uppercase tracking-[0.08em] text-[var(--color-bt-muted-foreground)]">
         <span>
           结论 <strong className={toneClass}>{stateLabel}</strong>
         </span>
-        <span className="text-white/25">|</span>
+        <span className="text-[var(--color-bt-border)]">|</span>
         <span>
-          胜率 <strong className="text-rf-accent">{winRate}</strong>
+          胜率 <strong className="text-[var(--color-bt-accent)]">{winRate}</strong>
         </span>
         <span>
-          P50 <strong className="text-white">{p50}</strong>
+          P50 <strong className="text-[var(--color-bt-foreground)]">{p50}</strong>
         </span>
-        <span>
-          CVaR <strong className="text-rf-chart-3">{cvar}</strong>
+        <span className="hidden md:inline">
+          CVaR <strong className="text-[var(--color-bt-danger)]">{cvar}</strong>
         </span>
-        <span>
-          P95 <strong className="text-rf-accent">{p95}</strong>
+        <span className="hidden lg:inline">
+          P95 <strong className="text-[var(--color-bt-success)]">{p95}</strong>
         </span>
-        <span>
-          盈亏比 <strong className="text-white">{upDownRatio}</strong>
+        <span className="hidden xl:inline">
+          盈亏比 <strong className="text-[var(--color-bt-foreground)]">{upDownRatio}</strong>
         </span>
       </div>
     </div>
@@ -99,7 +105,8 @@ function MiniTerminalHistogram({ histogram }: { histogram: MiniHistogramResult }
         y1={padding.top}
         x2={zeroX}
         y2={padding.top + chartHeight}
-        stroke="rgba(255,255,255,0.35)"
+        stroke="var(--color-bt-muted-foreground)"
+        strokeOpacity={0.5}
         strokeDasharray="3,3"
       />
 
@@ -118,7 +125,8 @@ function MiniTerminalHistogram({ histogram }: { histogram: MiniHistogramResult }
             width={Math.max(1, barWidth)}
             height={Math.max(1, barHeight)}
             rx={1}
-            fill={isGain ? "rgba(34, 211, 238, 0.88)" : "rgba(168, 85, 247, 0.82)"}
+            fill={isGain ? "var(--color-bt-success)" : "var(--color-bt-danger)"}
+            fillOpacity={0.88}
           />
         );
       })}
@@ -126,7 +134,7 @@ function MiniTerminalHistogram({ histogram }: { histogram: MiniHistogramResult }
       <text
         x={padding.left}
         y={height - 3}
-        fill="rgba(156, 163, 175, 0.95)"
+        fill="var(--color-bt-muted-foreground)"
         fontSize={8}
       >
         {minReturn.toFixed(0)}%
@@ -134,7 +142,7 @@ function MiniTerminalHistogram({ histogram }: { histogram: MiniHistogramResult }
       <text
         x={width - padding.right}
         y={height - 3}
-        fill="rgba(156, 163, 175, 0.95)"
+        fill="var(--color-bt-muted-foreground)"
         fontSize={8}
         textAnchor="end"
       >
@@ -147,6 +155,9 @@ function MiniTerminalHistogram({ histogram }: { histogram: MiniHistogramResult }
 
 export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspaceProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("conclusion2d");
+  const p5Color = useCSSVar("--color-bt-danger", "#ff4757");
+  const p50Color = useCSSVar("--color-bt-foreground", "#fafafa");
+  const p95Color = useCSSVar("--color-bt-success", "#00d4aa");
   const monteCarlo = useMonteCarloSession();
   const {
     input,
@@ -178,14 +189,17 @@ export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspac
   // 注入 actions
   useEffect(() => {
     onActions(
-      <button
-        type="button"
-        onClick={resimulate}
-        className="flex h-8 w-8 items-center justify-center rounded border border-white/10 bg-transparent text-rf-primary hover:bg-rf-primary/10"
-        title="重新模拟"
-      >
-        <MaterialIcon name="bolt" className="text-base" />
-      </button>,
+      <WorkspaceActionsShell className="pl-2">
+        <BtButton
+          variant="ghost"
+          size="icon"
+          onClick={resimulate}
+          className="text-[var(--color-bt-accent)]"
+          title="重新模拟"
+        >
+          <MaterialIcon name="bolt" className="text-base" />
+        </BtButton>
+      </WorkspaceActionsShell>,
     );
   }, [resimulate, onActions]);
 
@@ -206,57 +220,71 @@ export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspac
     p05Price: metrics.current.p05Price,
     meanPrice: metrics.current.meanPrice,
     p95Price: metrics.current.p95Price,
+    p05Color: p5Color,
+    p50Color,
+    p95Color,
   });
 
   return (
     <>
       <div className="relative flex-1 flex flex-col gap-2 p-4 min-h-0 overflow-hidden">
         <div className="relative h-full min-h-0 overflow-hidden rounded-xl border border-white/10 bg-rf-bg-dark/60">
-          <div className="pointer-events-auto absolute left-4 top-4 z-30 flex items-center gap-1 rounded-full bg-black/45 p-1 shadow-[0_8px_24px_rgba(0,0,0,0.22)] backdrop-blur-sm">
-            <button
-              type="button"
-              onClick={() => setViewMode("conclusion2d")}
-              className={`rounded-full px-2.5 py-1 font-mono text-[10px] transition-colors ${
-                viewMode === "conclusion2d"
-                  ? "bg-rf-primary/25 text-rf-primary"
-                  : "text-gray-300 hover:bg-white/10"
-              }`}
+          <div className="pointer-events-none absolute inset-x-4 top-4 z-30 flex flex-col items-start gap-2">
+            <div
+              role="radiogroup"
+              aria-label="视图模式"
+              className="pointer-events-auto isolate inline-flex shrink-0 items-center divide-x divide-[var(--color-bt-border)] border border-[var(--color-bt-border)] bg-[var(--color-bt-overlay)] p-0.5 backdrop-blur-sm"
+              style={{ boxShadow: "var(--shadow-bt-overlay)" }}
             >
-              2D 结论视图
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("explore3d")}
-              className={`rounded-full px-2.5 py-1 font-mono text-[10px] transition-colors ${
-                viewMode === "explore3d"
-                  ? "bg-rf-primary/25 text-rf-primary"
-                  : "text-gray-300 hover:bg-white/10"
-              }`}
-            >
-              3D 探索视图
-            </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={viewMode === "conclusion2d"}
+                onClick={() => setViewMode("conclusion2d")}
+                className={`appearance-none border-0 px-2.5 py-1 leading-none font-bt-mono text-[10px] uppercase tracking-[0.08em] transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-bt-ring)] ${
+                  viewMode === "conclusion2d"
+                    ? "bg-[var(--color-bt-muted)] text-[var(--color-bt-accent)]"
+                    : "text-[var(--color-bt-muted-foreground)] hover:bg-[var(--color-bt-overlay-soft)] hover:text-[var(--color-bt-foreground)]"
+                }`}
+              >
+                2D 结论视图
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={viewMode === "explore3d"}
+                onClick={() => setViewMode("explore3d")}
+                className={`appearance-none border-0 px-2.5 py-1 leading-none font-bt-mono text-[10px] uppercase tracking-[0.08em] transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-bt-ring)] ${
+                  viewMode === "explore3d"
+                    ? "bg-[var(--color-bt-muted)] text-[var(--color-bt-accent)]"
+                    : "text-[var(--color-bt-muted-foreground)] hover:bg-[var(--color-bt-overlay-soft)] hover:text-[var(--color-bt-foreground)]"
+                }`}
+              >
+                3D 探索视图
+              </button>
+            </div>
+
+            <div className="w-auto min-w-0 max-w-[980px]">
+              <ConclusionStrip
+                stateLabel={conclusionState.label}
+                stateTone={conclusionState.tone}
+                winRate={formatConclusionValue("winRate", conclusionStats.winRate)}
+                p50={formatConclusionValue("p50", conclusionStats.p50)}
+                cvar={formatConclusionValue("cvar", conclusionStats.cvar)}
+                p95={formatConclusionValue("p95", conclusionStats.p95)}
+                upDownRatio={formatConclusionValue("upDownRatio", conclusionStats.upDownRatio)}
+              />
+            </div>
           </div>
 
           {viewMode === "conclusion2d" ? (
             <>
-              <div className="pointer-events-none absolute left-1/2 top-4 z-20 w-[min(900px,calc(100%-260px))] -translate-x-1/2">
-                <ConclusionStrip
-                  stateLabel={conclusionState.label}
-                  stateTone={conclusionState.tone}
-                  winRate={formatConclusionValue("winRate", conclusionStats.winRate)}
-                  p50={formatConclusionValue("p50", conclusionStats.p50)}
-                  cvar={formatConclusionValue("cvar", conclusionStats.cvar)}
-                  p95={formatConclusionValue("p95", conclusionStats.p95)}
-                  upDownRatio={formatConclusionValue("upDownRatio", conclusionStats.upDownRatio)}
-                />
-              </div>
-
-              <div className="pointer-events-none absolute left-4 top-16 z-20 rounded bg-black/32 px-2.5 py-1 font-mono text-[10px] text-gray-300 backdrop-blur-sm">
+              <div className="pointer-events-none absolute left-4 top-24 z-20 border border-[var(--color-bt-border)] bg-[var(--color-bt-overlay)] px-2.5 py-1 font-bt-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-bt-muted-foreground)] backdrop-blur-sm">
                 <span>{dataBadge.sourceText}</span>
-                {dataBadge.dateText && <span className="text-gray-500"> · {dataBadge.dateText.replace("最新数据日期: ", "")}</span>}
+                {dataBadge.dateText && <span className="text-[var(--color-bt-muted-foreground)]/70"> · {dataBadge.dateText.replace("最新数据日期: ", "")}</span>}
               </div>
 
-              <div className="h-full px-1.5 pb-1.5 pt-14">
+              <div className="h-full px-1.5 pb-1.5 pt-24">
                 <div className="h-full">
                   <ReturnDistribution
                     key={`${input.seed}`}
@@ -275,41 +303,18 @@ export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspac
             <>
               <MonteCarloScene layer={renderLayer} markers={quantileMarkers} />
 
-              <div className="pointer-events-none absolute left-1/2 top-4 z-10 w-[min(820px,calc(100%-180px))] -translate-x-1/2 rounded border border-white/15 bg-black/40 px-3 py-2 backdrop-blur-sm">
-                <div className="flex items-center justify-between font-mono text-[10px] text-gray-200">
-                  <span>
-                    结论 <strong className={conclusionState.tone === "bullish" ? "text-rf-accent" : conclusionState.tone === "bearish" ? "text-rf-chart-3" : "text-white"}>{conclusionState.label}</strong>
-                  </span>
-                  <span>
-                    胜率 <strong className="text-rf-accent">{formatConclusionValue("winRate", conclusionStats.winRate)}</strong>
-                  </span>
-                  <span>
-                    P50 <strong className="text-white">{formatConclusionValue("p50", conclusionStats.p50)}</strong>
-                  </span>
-                  <span>
-                    CVaR <strong className="text-rf-chart-3">{formatConclusionValue("cvar", conclusionStats.cvar)}</strong>
-                  </span>
-                  <span>
-                    P95 <strong className="text-rf-accent">{formatConclusionValue("p95", conclusionStats.p95)}</strong>
-                  </span>
-                  <span>
-                    盈亏比 <strong className="text-white">{formatConclusionValue("upDownRatio", conclusionStats.upDownRatio)}</strong>
-                  </span>
-                </div>
-              </div>
-
-              <div className="pointer-events-none absolute bottom-4 right-4 z-10 rounded border border-white/15 bg-black/35 px-2 py-2 backdrop-blur-sm">
-                <p className="mb-1 font-mono text-[10px] text-gray-300">终点分布锚点</p>
+              <div className="pointer-events-none absolute bottom-4 right-4 z-10 border border-[var(--color-bt-border)] bg-[var(--color-bt-overlay)] px-2 py-2 backdrop-blur-sm">
+                <p className="mb-1 font-bt-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-bt-muted-foreground)]">终点分布锚点</p>
                 <MiniTerminalHistogram histogram={miniHistogram} />
               </div>
             </>
           )}
 
           {viewMode === "explore3d" && (
-            <div className="pointer-events-none absolute left-4 top-16 space-y-1 rounded border border-white/10 bg-black/35 px-3 py-2 font-mono text-[10px] text-gray-300 backdrop-blur-sm">
+            <div className="pointer-events-none absolute left-4 top-24 space-y-1 border border-[var(--color-bt-border)] bg-[var(--color-bt-overlay)] px-3 py-2 font-bt-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-bt-muted-foreground)] backdrop-blur-sm">
               <p>{dataBadge.sourceText}</p>
               {dataBadge.dateText && <p>{dataBadge.dateText}</p>}
-              {isBootstrapping && <p className="text-rf-accent">正在初始化数据...</p>}
+              {isBootstrapping && <p className="text-[var(--color-bt-accent)]">正在初始化数据...</p>}
             </div>
           )}
         </div>
