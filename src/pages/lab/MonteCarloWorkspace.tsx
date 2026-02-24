@@ -1,5 +1,5 @@
 import { Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMonteCarloSession } from "@/algorithms/monte-carlo/useSession";
 import { MonteCarloScene } from "@/algorithms/monte-carlo/Scene";
 import { buildQuantileMarkers } from "@/algorithms/monte-carlo/sceneMarkers";
@@ -13,69 +13,14 @@ import {
 import { buildMonteCarloDataBadge } from "@/algorithms/monte-carlo/viewMeta";
 import { ReturnDistribution } from "@/algorithms/monte-carlo/ReturnDistribution";
 import { BtButton } from "@/components/ui/BtButton";
-import { WorkspaceActionsShell } from "@/components/ui/WorkspaceActions";
+import type { LabStatusTone } from "@/components/ui/LabStatusStrip";
 import { useCSSVar } from "@/hooks/useCSSVar";
 import { TRADING_DAYS_PER_YEAR } from "@/algorithms/shared/constants";
 import { Footer } from "@/pages/lab/monte-carlo/components/Footer";
 import { Sidebar } from "@/pages/lab/monte-carlo/components/Sidebar";
-
-interface MonteCarloWorkspaceProps {
-	onSidebar: (node: React.ReactNode) => void;
-	onActions: (node: React.ReactNode) => void;
-}
+import type { LabWorkspaceProps } from "@/pages/lab/types";
 
 type ViewMode = "conclusion2d" | "explore3d";
-
-function ConclusionStrip({
-	stateLabel,
-	stateTone,
-	winRate,
-	p50,
-	cvar,
-	p95,
-	upDownRatio,
-}: {
-	stateLabel: string;
-	stateTone: "bullish" | "neutral" | "bearish";
-	winRate: string;
-	p50: string;
-	cvar: string;
-	p95: string;
-	upDownRatio: string;
-}) {
-	const toneClass =
-		stateTone === "bullish"
-			? "text-[var(--color-bt-success)]"
-			: stateTone === "bearish"
-				? "text-[var(--color-bt-danger)]"
-				: "text-[var(--color-bt-foreground)]";
-
-	return (
-		<div className="border border-[var(--color-bt-border)] bg-[var(--color-bt-overlay)] px-4 py-1.5">
-			<div className="flex items-center gap-2.5 overflow-hidden whitespace-nowrap font-bt-mono text-[10px] uppercase tracking-[0.08em] text-[var(--color-bt-muted-foreground)]">
-				<span>
-					结论 <strong className={toneClass}>{stateLabel}</strong>
-				</span>
-				<span className="text-[var(--color-bt-border)]">|</span>
-				<span>
-					胜率 <strong className="text-[var(--color-bt-success)]">{winRate}</strong>
-				</span>
-				<span>
-					P50 <strong className="text-[var(--color-bt-foreground)]">{p50}</strong>
-				</span>
-				<span className="hidden md:inline">
-					CVaR <strong className="text-[var(--color-bt-danger)]">{cvar}</strong>
-				</span>
-				<span className="hidden lg:inline">
-					P95 <strong className="text-[var(--color-bt-success)]">{p95}</strong>
-				</span>
-				<span className="hidden xl:inline">
-					盈亏比 <strong className="text-[var(--color-bt-foreground)]">{upDownRatio}</strong>
-				</span>
-			</div>
-		</div>
-	);
-}
 
 function MiniTerminalHistogram({ histogram }: { histogram: MiniHistogramResult }) {
 	const width = 220;
@@ -149,7 +94,19 @@ function MiniTerminalHistogram({ histogram }: { histogram: MiniHistogramResult }
 	);
 }
 
-export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspaceProps) {
+const toStatusTone = (
+	stateTone: "bullish" | "neutral" | "bearish",
+): LabStatusTone => {
+	if (stateTone === "bullish") return "success";
+	if (stateTone === "bearish") return "danger";
+	return "foreground";
+};
+
+export function MonteCarloWorkspace({
+	onSidebar,
+	onHeaderAction,
+	onStatus,
+}: LabWorkspaceProps) {
 	const [viewMode, setViewMode] = useState<ViewMode>("conclusion2d");
 	const p5Color = useCSSVar("--color-bt-danger", "#ff4757");
 	const p50Color = useCSSVar("--color-bt-foreground", "#fafafa");
@@ -167,6 +124,15 @@ export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspac
 		resimulate,
 		updateInput,
 	} = monteCarlo;
+	const resimulateRef = useRef(resimulate);
+
+	useEffect(() => {
+		resimulateRef.current = resimulate;
+	}, [resimulate]);
+
+	const handleResimulate = useCallback(() => {
+		resimulateRef.current();
+	}, []);
 
 	useEffect(() => {
 		const autoSteps = Math.round(input.years * TRADING_DAYS_PER_YEAR);
@@ -181,29 +147,77 @@ export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspac
 	}, [monteCarlo, onSidebar]);
 
 	useEffect(() => {
-		onActions(
-			<WorkspaceActionsShell className="pl-2">
+		onHeaderAction(null);
+		return () => onHeaderAction(null);
+	}, [onHeaderAction]);
+
+	const dataBadge = buildMonteCarloDataBadge(marketDataMeta);
+	const conclusionStats = buildConclusionStats(metrics.final);
+	const conclusionState = getConclusionState(conclusionStats);
+
+	const stateValue = conclusionState.label;
+	const winRateValue = formatConclusionValue("winRate", conclusionStats.winRate);
+	const p50Value = formatConclusionValue("p50", conclusionStats.p50);
+	const cvarValue = formatConclusionValue("cvar", conclusionStats.cvar);
+
+	useEffect(() => {
+		onStatus({
+			title: "Monte Carlo Status",
+			metrics: [
+				{
+					id: "mc-state",
+					label: "结论状态",
+					value: stateValue,
+					tone: toStatusTone(conclusionState.tone),
+				},
+				{
+					id: "mc-win-rate",
+					label: "胜率",
+					value: winRateValue,
+					tone: "success",
+				},
+				{
+					id: "mc-p50",
+					label: "P50",
+					value: p50Value,
+					tone: "foreground",
+				},
+				{
+					id: "mc-cvar95",
+					label: "CVaR95",
+					value: cvarValue,
+					tone: "danger",
+				},
+			],
+			action: (
 				<BtButton
-					variant="ghost"
-					size="icon"
-					onClick={resimulate}
-					className="text-[var(--color-bt-accent)]"
-					title="重新模拟"
+					variant="primary"
+					size="sm"
+					onClick={handleResimulate}
+					startIcon={<Zap className="h-4 w-4" strokeWidth={1.5} />}
 				>
-					<Zap className="h-4 w-4" strokeWidth={1.5} />
+					重新模拟
 				</BtButton>
-			</WorkspaceActionsShell>,
-		);
-	}, [resimulate, onActions]);
+			),
+		});
+	}, [
+		cvarValue,
+		conclusionState.tone,
+		handleResimulate,
+		onStatus,
+		p50Value,
+		stateValue,
+		winRateValue,
+	]);
+
+	useEffect(() => {
+		return () => onStatus(null);
+	}, [onStatus]);
 
 	const computedSteps = Math.round(metrics.progress * input.steps);
 	const totalSteps = input.steps;
 	const visiblePaths = Math.ceil(metrics.progress * input.paths);
 	const visibleTerminalPrices = terminalPrices.slice(0, Math.max(1, visiblePaths));
-
-	const dataBadge = buildMonteCarloDataBadge(marketDataMeta);
-	const conclusionStats = buildConclusionStats(metrics.final);
-	const conclusionState = getConclusionState(conclusionStats);
 	const miniHistogram = buildMiniHistogram(visibleTerminalPrices, input.initialPrice, 18);
 
 	const quantileMarkers = buildQuantileMarkers({
@@ -255,23 +269,11 @@ export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspac
 								3D 探索视图
 							</button>
 						</div>
-
-						<div className="w-auto min-w-0 max-w-[980px]">
-							<ConclusionStrip
-								stateLabel={conclusionState.label}
-								stateTone={conclusionState.tone}
-								winRate={formatConclusionValue("winRate", conclusionStats.winRate)}
-								p50={formatConclusionValue("p50", conclusionStats.p50)}
-								cvar={formatConclusionValue("cvar", conclusionStats.cvar)}
-								p95={formatConclusionValue("p95", conclusionStats.p95)}
-								upDownRatio={formatConclusionValue("upDownRatio", conclusionStats.upDownRatio)}
-							/>
-						</div>
 					</div>
 
 					{viewMode === "conclusion2d" ? (
 						<>
-							<div className="pointer-events-none absolute left-4 top-24 z-20 border border-[var(--color-bt-border)] bg-[var(--color-bt-overlay)] px-2.5 py-1 font-bt-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-bt-muted-foreground)]">
+							<div className="pointer-events-none absolute left-4 top-20 z-20 border border-[var(--color-bt-border)] bg-[var(--color-bt-overlay)] px-2.5 py-1 font-bt-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-bt-muted-foreground)]">
 								<span>{dataBadge.sourceText}</span>
 								{dataBadge.dateText ? (
 									<span className="text-[var(--color-bt-muted-foreground)]/70">
@@ -281,7 +283,7 @@ export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspac
 								) : null}
 							</div>
 
-							<div className="h-full px-1.5 pb-1.5 pt-24">
+							<div className="h-full px-1.5 pb-1.5 pt-20">
 								<div className="h-full">
 									<ReturnDistribution
 										key={`${input.seed}`}
@@ -310,7 +312,7 @@ export function MonteCarloWorkspace({ onSidebar, onActions }: MonteCarloWorkspac
 					)}
 
 					{viewMode === "explore3d" ? (
-						<div className="pointer-events-none absolute left-4 top-24 space-y-1 border border-[var(--color-bt-border)] bg-[var(--color-bt-overlay)] px-3 py-2 font-bt-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-bt-muted-foreground)]">
+						<div className="pointer-events-none absolute left-4 top-20 space-y-1 border border-[var(--color-bt-border)] bg-[var(--color-bt-overlay)] px-3 py-2 font-bt-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-bt-muted-foreground)]">
 							<p>{dataBadge.sourceText}</p>
 							{dataBadge.dateText ? <p>{dataBadge.dateText}</p> : null}
 							{isBootstrapping ? (

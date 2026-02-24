@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { calculateBS, type BSResult, type OptionType } from "@/algorithms/black-scholes/engine";
 
 export type MetricType = "price" | "delta" | "gamma" | "vega" | "theta" | "rho";
@@ -155,19 +155,29 @@ export function useBSSession() {
 	const surfaceData = surfaceState.data;
 	const isBootstrapping = surfaceState.key !== expectedSurfaceKey;
 
-	const updateParams = (newParams: Partial<BSParams>) => {
+	const updateParams = useCallback((newParams: Partial<BSParams>) => {
 		setParams((prev) => ({ ...prev, ...newParams }));
-	};
+	}, []);
 
-	return {
-		params,
-		activeMetric,
-		currentResult,
-		surfaceData,
-		isBootstrapping,
-		updateParams,
-		setActiveMetric,
-		S_RANGE,
-		T_RANGE,
-	};
+	return useMemo(
+		() => ({
+			params,
+			activeMetric,
+			currentResult,
+			surfaceData,
+			isBootstrapping,
+			updateParams,
+			setActiveMetric,
+			S_RANGE,
+			T_RANGE,
+		}),
+		[
+			activeMetric,
+			currentResult,
+			isBootstrapping,
+			params,
+			surfaceData,
+			updateParams,
+		],
+	);
 }

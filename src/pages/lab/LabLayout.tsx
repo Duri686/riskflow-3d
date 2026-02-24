@@ -17,32 +17,70 @@ import {
 } from "@/algorithms/registry";
 import { RiskFlowLogo } from "@/components/Logo";
 import { BtButton } from "@/components/ui/BtButton";
+import {
+	LabBottomNav,
+	type LabBottomNavItem,
+} from "@/components/ui/LabBottomNav";
+import {
+	LabStatusStrip,
+	type LabStatusModel,
+} from "@/components/ui/LabStatusStrip";
+import { WorkspaceActionsShell } from "@/components/ui/WorkspaceActions";
 import { BlackScholesWorkspace } from "@/pages/lab/BlackScholesWorkspace";
 import { KalmanWorkspace } from "@/pages/lab/KalmanWorkspace";
 import { MarkowitzWorkspace } from "@/pages/lab/MarkowitzWorkspace";
 import { MonteCarloWorkspace } from "@/pages/lab/MonteCarloWorkspace";
+import type { LabWorkspaceProps } from "@/pages/lab/types";
+
+const MOBILE_NAV_ITEMS: LabBottomNavItem[] = [
+	{ id: "monte-carlo", indexLabel: "01", shortLabel: "MON" },
+	{ id: "black-scholes", indexLabel: "02", shortLabel: "BS" },
+	{ id: "markowitz", indexLabel: "03", shortLabel: "MKT" },
+	{ id: "kalman-filter", indexLabel: "04", shortLabel: "KAL" },
+];
 
 /** 按 activeId 渲染对应 Workspace */
 function WorkspaceContent({
 	activeId,
 	onSidebar,
-	onActions,
-}: {
-	activeId: AlgorithmId;
-	onSidebar: (node: React.ReactNode) => void;
-	onActions: (node: React.ReactNode) => void;
-}) {
+	onHeaderAction,
+	onStatus,
+}: { activeId: AlgorithmId } & LabWorkspaceProps) {
 	if (activeId === "monte-carlo") {
-		return <MonteCarloWorkspace onSidebar={onSidebar} onActions={onActions} />;
+		return (
+			<MonteCarloWorkspace
+				onSidebar={onSidebar}
+				onHeaderAction={onHeaderAction}
+				onStatus={onStatus}
+			/>
+		);
 	}
 	if (activeId === "kalman-filter") {
-		return <KalmanWorkspace onSidebar={onSidebar} onActions={onActions} />;
+		return (
+			<KalmanWorkspace
+				onSidebar={onSidebar}
+				onHeaderAction={onHeaderAction}
+				onStatus={onStatus}
+			/>
+		);
 	}
 	if (activeId === "black-scholes") {
-		return <BlackScholesWorkspace onSidebar={onSidebar} onActions={onActions} />;
+		return (
+			<BlackScholesWorkspace
+				onSidebar={onSidebar}
+				onHeaderAction={onHeaderAction}
+				onStatus={onStatus}
+			/>
+		);
 	}
 	if (activeId === "markowitz") {
-		return <MarkowitzWorkspace onSidebar={onSidebar} onActions={onActions} />;
+		return (
+			<MarkowitzWorkspace
+				onSidebar={onSidebar}
+				onHeaderAction={onHeaderAction}
+				onStatus={onStatus}
+			/>
+		);
 	}
 
 	const meta = getAlgorithmMeta(activeId);
@@ -63,31 +101,33 @@ function WorkspaceContent({
 export function LabLayout() {
 	const params = useParams();
 	const routeId = params.id as string | undefined;
-
-	const [activeId, setActiveId] = useState<AlgorithmId>(() =>
-		isAlgorithmId(routeId ?? "")
-			? (routeId as AlgorithmId)
-			: DEFAULT_ALGORITHM_ID,
-	);
+	const activeId: AlgorithmId = isAlgorithmId(routeId ?? "")
+		? (routeId as AlgorithmId)
+		: DEFAULT_ALGORITHM_ID;
 
 	const [sidebar, setSidebar] = useState<React.ReactNode>(null);
-	const [actions, setActions] = useState<React.ReactNode>(null);
+	const [headerActionNode, setHeaderActionNode] = useState<React.ReactNode>(null);
+	const [statusModel, setStatusModel] = useState<LabStatusModel | null>(null);
 	const [isRightCollapsed, setRightPanelCollapsed] = useState(false);
 
 	const navigate = useNavigate();
 
 	const switchTab = useCallback(
 		(id: AlgorithmId) => {
-			setActiveId((prev) => {
-				if (prev === id) return prev;
-				setSidebar(null);
-				setActions(null);
-				return id;
-			});
+			if (id === activeId) return;
+			setSidebar(null);
+			setHeaderActionNode(null);
+			setStatusModel(null);
 			navigate(`/lab/${id}`, { replace: true });
 		},
-		[navigate],
+		[activeId, navigate],
 	);
+
+	useEffect(() => {
+		if (routeId && !isAlgorithmId(routeId)) {
+			navigate(`/lab/${DEFAULT_ALGORITHM_ID}`, { replace: true });
+		}
+	}, [routeId, navigate]);
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
@@ -125,6 +165,24 @@ export function LabLayout() {
 		}
 	}, [activeIndex]);
 
+	useEffect(() => {
+		const handleResize = () => {
+			const el = tabRefs.current[activeIndex];
+			if (el) {
+				setIndicator({ left: el.offsetLeft, width: el.offsetWidth });
+			}
+		};
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, [activeIndex]);
+
+	const activeMeta = getAlgorithmMeta(activeId);
+	const effectiveStatusModel: LabStatusModel = statusModel ?? {
+		title: `${activeMeta.title} Status`,
+		metrics: [],
+		loading: true,
+	};
+
 	return (
 		<div className="relative flex h-screen w-full flex-col overflow-hidden bg-[var(--color-bt-background)] pt-16 text-[var(--color-bt-foreground)]">
 			<div className="bt-noise-overlay" />
@@ -138,7 +196,16 @@ export function LabLayout() {
 						<RiskFlowLogo size="sm" className="text-[var(--color-bt-foreground)]" />
 					</div>
 
-					<nav className="relative z-10 min-w-0 flex-1 overflow-x-auto bt-scrollbar">
+					<div className="min-w-0 flex-1 md:hidden">
+						<p className="font-bt-mono text-[9px] uppercase tracking-[0.18em] text-[var(--color-bt-muted-foreground)]">
+							Lab Module
+						</p>
+						<p className="truncate font-bt-sans text-sm font-semibold tracking-[-0.02em] text-[var(--color-bt-foreground)]">
+							{activeMeta.title}
+						</p>
+					</div>
+
+					<nav className="relative z-10 hidden min-w-0 flex-1 overflow-x-auto bt-scrollbar md:block">
 						<div className="relative flex min-w-max items-stretch gap-1 border-b border-[var(--color-bt-border)] pb-1">
 							<div
 								className="pointer-events-none absolute bottom-0 h-[2px] bg-[var(--color-bt-accent)] transition-[left,width] duration-200 ease-[var(--ease-bt)]"
@@ -171,7 +238,10 @@ export function LabLayout() {
 						</div>
 					</nav>
 
-					<div className="relative z-10 flex shrink-0 items-center gap-2">
+					<div className="relative z-10 ml-auto flex shrink-0 items-center gap-2">
+						{headerActionNode ? (
+							<WorkspaceActionsShell>{headerActionNode}</WorkspaceActionsShell>
+						) : null}
 						<BtButton
 							variant="ghost"
 							size="icon"
@@ -187,12 +257,11 @@ export function LabLayout() {
 								<PanelRightClose className="h-4 w-4" strokeWidth={1.5} />
 							)}
 						</BtButton>
-						{actions}
 					</div>
 				</div>
 			</header>
 
-			<div className="relative flex flex-1 overflow-hidden">
+			<div className="relative flex flex-1 overflow-hidden pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
 				<main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
 					<div className="pointer-events-none absolute inset-0">
 						<div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:100%_44px]" />
@@ -200,11 +269,23 @@ export function LabLayout() {
 					</div>
 
 					<div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
-						<WorkspaceContent
-							activeId={activeId}
-							onSidebar={setSidebar}
-							onActions={setActions}
-						/>
+						<div className="px-4 pb-0 pt-4 sm:px-6 lg:px-10">
+							<LabStatusStrip
+								title={effectiveStatusModel.title}
+								metrics={effectiveStatusModel.metrics}
+								action={effectiveStatusModel.action}
+								loading={effectiveStatusModel.loading}
+							/>
+						</div>
+
+						<div className="min-h-0 flex-1 overflow-hidden">
+							<WorkspaceContent
+								activeId={activeId}
+								onSidebar={setSidebar}
+								onHeaderAction={setHeaderActionNode}
+								onStatus={setStatusModel}
+							/>
+						</div>
 					</div>
 				</main>
 
@@ -222,6 +303,12 @@ export function LabLayout() {
 					</>
 				) : null}
 			</div>
+
+			<LabBottomNav
+				items={MOBILE_NAV_ITEMS}
+				activeId={activeId}
+				onChange={switchTab}
+			/>
 		</div>
 	);
 }

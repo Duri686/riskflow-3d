@@ -1,20 +1,19 @@
 import { useEffect } from "react";
 import { useBSSession } from "@/algorithms/black-scholes/useSession";
 import { Scene } from "@/algorithms/black-scholes/Scene";
-import {
-	WorkspaceActionDivider,
-	WorkspaceActionMetric,
-	WorkspaceActionsShell,
-} from "@/components/ui/WorkspaceActions";
 import { Sidebar } from "@/pages/lab/black-scholes/components/Sidebar";
+import type { LabWorkspaceProps } from "@/pages/lab/types";
 
-interface BlackScholesWorkspaceProps {
-	onSidebar: (node: React.ReactNode) => void;
-	onActions: (node: React.ReactNode) => void;
-}
-
-export function BlackScholesWorkspace({ onSidebar, onActions }: BlackScholesWorkspaceProps) {
+export function BlackScholesWorkspace({
+	onSidebar,
+	onHeaderAction,
+	onStatus,
+}: LabWorkspaceProps) {
 	const bs = useBSSession();
+	const optionPrice = bs.currentResult.price.toFixed(4);
+	const delta = bs.currentResult.delta.toFixed(3);
+	const gamma = bs.currentResult.gamma.toFixed(3);
+	const theta = bs.currentResult.theta.toFixed(3);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: 依赖 bs 整体
 	useEffect(() => {
@@ -22,31 +21,45 @@ export function BlackScholesWorkspace({ onSidebar, onActions }: BlackScholesWork
 	}, [bs, onSidebar]);
 
 	useEffect(() => {
-		onActions(
-			<WorkspaceActionsShell>
-				<WorkspaceActionMetric
-					label="Option Price"
-					value={bs.currentResult.price.toFixed(4)}
-					tone="accent"
-				/>
-				<WorkspaceActionDivider />
-				<div className="flex items-center gap-3">
-					{[
-						{ label: "Δ", val: bs.currentResult.delta },
-						{ label: "Γ", val: bs.currentResult.gamma },
-						{ label: "θ", val: bs.currentResult.theta },
-					].map((greek) => (
-						<WorkspaceActionMetric
-							key={greek.label}
-							label={greek.label}
-							value={greek.val.toFixed(3)}
-							align="start"
-						/>
-					))}
-				</div>
-			</WorkspaceActionsShell>,
-		);
-	}, [bs.currentResult, onActions]);
+		onHeaderAction(null);
+		return () => onHeaderAction(null);
+	}, [onHeaderAction]);
+
+	useEffect(() => {
+		onStatus({
+			title: "Black-Scholes Status",
+			metrics: [
+				{
+					id: "bs-price",
+					label: "Option Price",
+					value: optionPrice,
+					tone: "accent",
+				},
+				{
+					id: "bs-delta",
+					label: "Δ",
+					value: delta,
+					tone: "foreground",
+				},
+				{
+					id: "bs-gamma",
+					label: "Γ",
+					value: gamma,
+					tone: "foreground",
+				},
+				{
+					id: "bs-theta",
+					label: "θ",
+					value: theta,
+					tone: "warning",
+				},
+			],
+		});
+	}, [delta, gamma, onStatus, optionPrice, theta]);
+
+	useEffect(() => {
+		return () => onStatus(null);
+	}, [onStatus]);
 
 	return (
 		<div className="relative flex min-h-0 flex-1 flex-col overflow-hidden p-4">
