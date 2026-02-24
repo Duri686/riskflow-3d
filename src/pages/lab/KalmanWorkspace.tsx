@@ -101,8 +101,8 @@ export function KalmanWorkspace({
 	}, [onStatus]);
 
 	return (
-		<div className="relative flex min-h-0 flex-1 flex-col gap-2 overflow-hidden p-4">
-			<div className="h-full min-h-0 border border-[var(--color-bt-border)] bg-[var(--color-bt-background)]">
+		<div className="relative flex h-full flex-1 flex-col gap-1.5 overflow-hidden p-3 md:gap-2 md:p-4">
+			<div className="h-full min-h-[22rem] overflow-hidden border border-[var(--color-bt-border)] bg-[var(--color-bt-background)] md:min-h-0">
 				<VolatilityChart
 					result={kalman.result}
 					dailyReturns={kalman.dailyReturns}

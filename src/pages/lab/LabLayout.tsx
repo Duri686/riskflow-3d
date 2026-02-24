@@ -269,7 +269,7 @@ export function LabLayout() {
 					</div>
 
 					<div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
-						<div className="px-4 pb-0 pt-4 sm:px-6 lg:px-10">
+						<div className="px-4 pb-0 pt-4 ">
 							<LabStatusStrip
 								title={effectiveStatusModel.title}
 								metrics={effectiveStatusModel.metrics}

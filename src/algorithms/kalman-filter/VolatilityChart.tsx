@@ -1,5 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KalmanFilterResult, VolRegime } from "@/algorithms/kalman-filter/engine";
+import {
+	buildXTicks,
+	clampViewport,
+	getInitialViewport,
+	getViewportSpan,
+	isSameViewport,
+	panViewport,
+	zoomViewport,
+	type ChartViewport,
+	type RangePreset,
+} from "@/algorithms/kalman-filter/volatilityViewport";
 import { TRADING_DAYS_PER_YEAR } from "@/algorithms/shared/constants";
 
 interface VolatilityChartProps {
@@ -8,17 +19,18 @@ interface VolatilityChartProps {
 	isBootstrapping?: boolean;
 }
 
-// ── 布局常量（去掉右侧面板后，右边距大幅缩小） ──
-const MARGIN = { top: 40, right: 30, bottom: 50, left: 60 };
+const MOBILE_BREAKPOINT = 768;
+const MIN_SPAN = 5;
 
-// ── Regime 颜色映射 ──
+const DESKTOP_MARGIN = { top: 44, right: 30, bottom: 50, left: 60 };
+const MOBILE_MARGIN = { top: 32, right: 14, bottom: 36, left: 42 };
+
 const REGIME_COLORS: Record<VolRegime, { bg: string }> = {
 	low: { bg: "var(--color-bt-success-soft)" },
 	medium: { bg: "var(--color-bt-warning-soft)" },
 	high: { bg: "var(--color-bt-danger-soft)" },
 };
 
-// ── Phase 颜色映射 ──
 const PHASE_COLORS: Record<string, string> = {
 	rising: "var(--color-bt-danger)",
 	falling: "var(--color-bt-success)",
@@ -37,168 +49,514 @@ const CHART_COLORS = {
 	band: "var(--color-bt-success)",
 };
 
+const clampNumber = (value: number, min: number, max: number): number => {
+	return Math.max(min, Math.min(max, value));
+};
+
+const buildNiceYTicks = (maxValue: number): number[] => {
+	const safeMax = Math.max(maxValue, 0.2);
+	const roughStep = safeMax / 5;
+	const exponent = Math.floor(Math.log10(roughStep));
+	const fraction = roughStep / 10 ** exponent;
+
+	let niceFraction = 1;
+	if (fraction >= 7) niceFraction = 10;
+	else if (fraction >= 3) niceFraction = 5;
+	else if (fraction >= 1.5) niceFraction = 2;
+
+	const step = niceFraction * 10 ** exponent;
+	const ticks: number[] = [];
+	for (let value = 0; value <= safeMax + step * 0.1; value += step) {
+		ticks.push(Number(value.toFixed(8)));
+	}
+	return ticks;
+};
+
 export function VolatilityChart({
 	result,
 	dailyReturns,
 	isBootstrapping = false,
 }: VolatilityChartProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
-	const [size, setSize] = useState({ width: 800, height: 400 });
+	const plotAreaRef = useRef<SVGRectElement>(null);
 
-	// 响应式尺寸
+	const [size, setSize] = useState({ width: 800, height: 420 });
+	const [viewState, setViewState] = useState<{
+		key: string;
+		viewport: ChartViewport;
+		rangePreset: RangePreset;
+		showDetails: boolean;
+	}>({
+		key: "bootstrap",
+		viewport: { start: 0, end: 0 },
+		rangePreset: "all",
+		showDetails: true,
+	});
+
+	const viewportRef = useRef<ChartViewport>({ start: 0, end: 0 });
+	const dragRef = useRef<{ startX: number; startViewport: ChartViewport } | null>(
+		null,
+	);
+	const pinchRef = useRef<{ startDistance: number; startViewport: ChartViewport } | null>(
+		null,
+	);
+	const pointersRef = useRef<Map<number, number>>(new Map());
+
 	useEffect(() => {
-		const el = containerRef.current;
-		if (!el) return;
+		const element = containerRef.current;
+		if (!element) return;
 
-		const ro = new ResizeObserver(([entry]) => {
+		const observer = new ResizeObserver(([entry]) => {
 			const { width, height } = entry.contentRect;
-			if (width > 0 && height > 0) {
-				setSize({ width: Math.floor(width), height: Math.floor(height) });
-			}
+			if (width <= 0 || height <= 0) return;
+			setSize({
+				width: Math.floor(width),
+				height: Math.floor(height),
+			});
 		});
-		ro.observe(el);
-		return () => ro.disconnect();
-	}, []);
+
+		observer.observe(element);
+		return () => observer.disconnect();
+	}, [result.steps.length]);
 
 	const { steps, regimeHistory, ewma } = result;
-	const hasData = steps.length >= 2;
+	const totalPoints = steps.length;
+	const hasData = totalPoints >= 2;
+	const isMobile = size.width < MOBILE_BREAKPOINT;
+	const minSpan = Math.min(MIN_SPAN, Math.max(1, totalPoints));
+	const viewKey = `${totalPoints}-${isMobile ? "mobile" : "desktop"}`;
+	const defaultViewport = getInitialViewport(totalPoints, isMobile);
+	const defaultRangePreset: RangePreset = isMobile ? 30 : "all";
+	const defaultShowDetails = !isMobile;
 	const phaseColor =
 		PHASE_COLORS[result.momentum.phase] ?? "var(--color-bt-muted-foreground)";
+
+	const resolvedViewState = useMemo(() => {
+		if (!hasData) {
+			return {
+				key: viewKey,
+				viewport: defaultViewport,
+				rangePreset: defaultRangePreset,
+				showDetails: defaultShowDetails,
+			};
+		}
+
+		if (viewState.key !== viewKey) {
+			return {
+				key: viewKey,
+				viewport: defaultViewport,
+				rangePreset: defaultRangePreset,
+				showDetails: defaultShowDetails,
+			};
+		}
+
+		return {
+			...viewState,
+			viewport: clampViewport(viewState.viewport, totalPoints, minSpan, totalPoints),
+		};
+	}, [
+		defaultRangePreset,
+		defaultShowDetails,
+		defaultViewport,
+		hasData,
+		minSpan,
+		totalPoints,
+		viewKey,
+		viewState,
+	]);
+
+	const isDenseMobilePreset =
+		isMobile &&
+		resolvedViewState.rangePreset === 30;
+	const margin = useMemo(() => {
+		if (!isMobile) {
+			return DESKTOP_MARGIN;
+		}
+		if (!isDenseMobilePreset) {
+			return MOBILE_MARGIN;
+		}
+		return {
+			...MOBILE_MARGIN,
+			bottom: 56,
+		};
+	}, [isDenseMobilePreset, isMobile]);
+
+	useEffect(() => {
+		viewportRef.current = resolvedViewState.viewport;
+	}, [resolvedViewState.viewport]);
+
+	const applyPreset = useCallback(
+		(preset: Exclude<RangePreset, "custom">) => {
+			if (!hasData) return;
+			const desiredSpan = preset === "all" ? totalPoints : Math.min(preset, totalPoints);
+			const nextViewport: ChartViewport = {
+				start: totalPoints - desiredSpan,
+				end: totalPoints - 1,
+			};
+			setViewState({
+				key: viewKey,
+				viewport: nextViewport,
+				rangePreset:
+					preset === "all" || desiredSpan === totalPoints ? "all" : preset,
+				showDetails: resolvedViewState.showDetails,
+			});
+		},
+		[hasData, resolvedViewState.showDetails, totalPoints, viewKey],
+	);
+
+	const resetViewport = useCallback(() => {
+		if (!hasData) return;
+		setViewState({
+			key: viewKey,
+			viewport: defaultViewport,
+			rangePreset: defaultRangePreset,
+			showDetails: resolvedViewState.showDetails,
+		});
+	}, [
+		defaultRangePreset,
+		defaultViewport,
+		hasData,
+		resolvedViewState.showDetails,
+		viewKey,
+	]);
+
+	const updateCustomViewport = useCallback(
+		(nextViewport: ChartViewport) => {
+			if (!hasData) return;
+			const safeViewport = clampViewport(nextViewport, totalPoints, minSpan, totalPoints);
+			setViewState((previous) => {
+				const baseline =
+					previous.key === viewKey
+						? previous
+						: {
+								key: viewKey,
+								viewport: defaultViewport,
+								rangePreset: defaultRangePreset,
+								showDetails: defaultShowDetails,
+							};
+				if (isSameViewport(baseline.viewport, safeViewport)) {
+					return previous;
+				}
+				return {
+					...baseline,
+					viewport: safeViewport,
+					rangePreset: "custom",
+				};
+			});
+		},
+		[
+			defaultRangePreset,
+			defaultShowDetails,
+			defaultViewport,
+			hasData,
+			minSpan,
+			totalPoints,
+			viewKey,
+		],
+	);
 
 	const chart = useMemo(() => {
 		if (!hasData) return null;
 
-		const W = size.width - MARGIN.left - MARGIN.right;
-		const H = size.height - MARGIN.top - MARGIN.bottom;
+		const safeViewport = resolvedViewState.viewport;
+		const visibleStart = safeViewport.start;
+		const visibleEnd = safeViewport.end;
+		const visibleSpan = getViewportSpan(safeViewport);
 
-		// 观测值：|r_t| 的年化近似 = |r_t| × √TRADING_DAYS_PER_YEAR
-		const observedVols = dailyReturns.map((r) => Math.abs(r) * Math.sqrt(TRADING_DAYS_PER_YEAR));
+		const plotWidth = size.width - margin.left - margin.right;
+		const plotHeight = size.height - margin.top - margin.bottom;
+		if (plotWidth <= 0 || plotHeight <= 0) return null;
 
-		// Kalman 估计值
-		const estimatedVols = steps.map((s) => s.annualizedVol);
-
-		// EWMA 值
+		const observedVols = steps.map((step, index) => {
+			const returnValue = dailyReturns[index];
+			if (Number.isFinite(returnValue)) {
+				return Math.abs(returnValue) * Math.sqrt(TRADING_DAYS_PER_YEAR);
+			}
+			return Math.sqrt(Math.max(0, step.observed) * TRADING_DAYS_PER_YEAR);
+		});
+		const estimatedVols = steps.map((step) => step.annualizedVol);
 		const ewmaVols = ewma.values;
-
-		// 置信带上下界
-		const upperBand = steps.map((s) =>
-			Math.sqrt(Math.max(0, s.estimated + Math.sqrt(s.errorCovariance)) * TRADING_DAYS_PER_YEAR),
-		);
-		const lowerBand = steps.map((s) =>
-			Math.sqrt(Math.max(0, s.estimated - Math.sqrt(s.errorCovariance)) * TRADING_DAYS_PER_YEAR),
-		);
-
-		// Y 轴范围
-		const allVals = [...observedVols, ...estimatedVols, ...upperBand, ...ewmaVols];
-		const maxDataVal = Math.max(...allVals);
-		const yMax = Math.max(maxDataVal * 1.1, 0.2);
-		const yMin = 0;
-
-		// 坐标映射
-		const xScale = (t: number) => MARGIN.left + (t / (steps.length - 1)) * W;
-		const yScale = (v: number) =>
-			MARGIN.top + H - ((v - yMin) / (yMax - yMin)) * H;
-
-		// 生成路径
-		const observedPath = observedVols
-			.map(
-				(v, i) =>
-					`${i === 0 ? "M" : "L"}${xScale(i).toFixed(1)},${yScale(v).toFixed(1)}`,
-			)
-			.join(" ");
-
-		const estimatedPath = estimatedVols
-			.map(
-				(v, i) =>
-					`${i === 0 ? "M" : "L"}${xScale(i).toFixed(1)},${yScale(v).toFixed(1)}`,
-			)
-			.join(" ");
-
-		// EWMA 路径
-		const ewmaPath = ewmaVols
-			.map(
-				(v, i) =>
-					`${i === 0 ? "M" : "L"}${xScale(i).toFixed(1)},${yScale(v).toFixed(1)}`,
-			)
-			.join(" ");
-
-		// 置信带多边形
-		const bandPath = [
-			...upperBand.map(
-				(v, i) =>
-					`${i === 0 ? "M" : "L"}${xScale(i).toFixed(1)},${yScale(v).toFixed(1)}`,
+		const upperBand = steps.map((step) =>
+			Math.sqrt(
+				Math.max(0, step.estimated + Math.sqrt(step.errorCovariance)) *
+					TRADING_DAYS_PER_YEAR,
 			),
-			...lowerBand.map(
-				(_, i) =>
-					`L${xScale(steps.length - 1 - i).toFixed(1)},${yScale(lowerBand[steps.length - 1 - i]).toFixed(1)}`,
+		);
+		const lowerBand = steps.map((step) =>
+			Math.sqrt(
+				Math.max(0, step.estimated - Math.sqrt(step.errorCovariance)) *
+					TRADING_DAYS_PER_YEAR,
 			),
-			"Z",
-		].join(" ");
+		);
 
-		// Regime 色带区间（合并连续相同 regime 的段）
-		const regimeBands: { start: number; end: number; regime: VolRegime }[] = [];
+		const observedVisible = observedVols.slice(visibleStart, visibleEnd + 1);
+		const estimatedVisible = estimatedVols.slice(visibleStart, visibleEnd + 1);
+		const ewmaVisible = ewmaVols.slice(visibleStart, visibleEnd + 1);
+		const upperVisible = upperBand.slice(visibleStart, visibleEnd + 1);
+		const lowerVisible = lowerBand.slice(visibleStart, visibleEnd + 1);
+
+		const referenceThresholds = [0.4, 0.8];
+		const allValues = [
+			...observedVisible,
+			...estimatedVisible,
+			...ewmaVisible,
+			...upperVisible,
+			...referenceThresholds,
+		];
+		const maxVisibleValue = allValues.reduce((max, value) => {
+			return Number.isFinite(value) ? Math.max(max, value) : max;
+		}, 0);
+		const yMax = Math.max(0.2, maxVisibleValue * 1.1, 0.85);
+
+		const yScale = (value: number) => {
+			return margin.top + plotHeight - (value / yMax) * plotHeight;
+		};
+
+		const xScaleFromLocal = (localIndex: number) => {
+			if (visibleSpan <= 1) {
+				return margin.left + plotWidth / 2;
+			}
+			return margin.left + (localIndex / (visibleSpan - 1)) * plotWidth;
+		};
+
+		const xScale = (globalIndex: number) => {
+			return xScaleFromLocal(globalIndex - visibleStart);
+		};
+
+		const buildPath = (values: number[]) => {
+			if (values.length === 0) return "";
+			return values
+				.map((value, index) => {
+					const command = index === 0 ? "M" : "L";
+					return `${command}${xScaleFromLocal(index).toFixed(1)},${yScale(value).toFixed(1)}`;
+				})
+				.join(" ");
+		};
+
+		const observedPath = buildPath(observedVisible);
+		const estimatedPath = buildPath(estimatedVisible);
+		const ewmaPath = buildPath(ewmaVisible);
+
+		let bandPath = "";
+		if (upperVisible.length >= 2 && lowerVisible.length >= 2) {
+			const upperPath = upperVisible.map((value, index) => {
+				return `${index === 0 ? "M" : "L"}${xScaleFromLocal(index).toFixed(1)},${yScale(value).toFixed(1)}`;
+			});
+			const lowerPath: string[] = [];
+			for (let index = lowerVisible.length - 1; index >= 0; index -= 1) {
+				lowerPath.push(
+					`L${xScaleFromLocal(index).toFixed(1)},${yScale(lowerVisible[index]).toFixed(1)}`,
+				);
+			}
+			bandPath = [...upperPath, ...lowerPath, "Z"].join(" ");
+		}
+
+		const regimeBands: Array<{ start: number; end: number; regime: VolRegime }> = [];
 		if (regimeHistory.length > 0) {
-			let currentRegime = regimeHistory[0];
-			let segStart = 0;
-			for (let i = 1; i < regimeHistory.length; i++) {
-				if (regimeHistory[i] !== currentRegime) {
-					regimeBands.push({ start: segStart, end: i - 1, regime: currentRegime });
-					currentRegime = regimeHistory[i];
-					segStart = i;
+			let currentRegime = regimeHistory[visibleStart];
+			let segmentStart = visibleStart;
+			for (let index = visibleStart + 1; index <= visibleEnd; index += 1) {
+				if (regimeHistory[index] !== currentRegime) {
+					regimeBands.push({
+						start: segmentStart,
+						end: index - 1,
+						regime: currentRegime,
+					});
+					currentRegime = regimeHistory[index];
+					segmentStart = index;
 				}
 			}
-			regimeBands.push({ start: segStart, end: regimeHistory.length - 1, regime: currentRegime });
+			regimeBands.push({
+				start: segmentStart,
+				end: visibleEnd,
+				regime: currentRegime,
+			});
 		}
 
-		// Regime 阈值线位置
-		const thresholds = result.riskGate ? [
-			{ val: 0.4, label: '40% 低↔中' },
-			{ val: 0.8, label: '80% 中↔高' },
-		].filter(t => t.val < yMax) : [];
-
-		// Y 轴刻度
-		const yTicks: number[] = [];
-		const roughStep = yMax / 6;
-		const exponent = Math.floor(Math.log10(roughStep));
-		const fraction = roughStep / Math.pow(10, exponent);
-
-		let niceFraction = 1;
-		if (fraction >= 7) niceFraction = 10;
-		else if (fraction >= 3) niceFraction = 5;
-		else if (fraction >= 1.5) niceFraction = 2;
-
-		const yStep = niceFraction * Math.pow(10, exponent);
-
-		for (let tick = 0; tick <= yMax + yStep * 0.1; tick += yStep) {
-			yTicks.push(Number(tick.toFixed(10)));
-		}
-
-		// X 轴刻度
-		const xTicks: number[] = [];
-		const xTickStep = Math.max(30, Math.floor(steps.length / 6));
-		for (let t = 0; t < steps.length; t += xTickStep) {
-			xTicks.push(t);
-		}
-		if (xTicks[xTicks.length - 1] !== steps.length - 1) {
-			xTicks.push(steps.length - 1);
-		}
+		const thresholds = [
+			{ value: 0.4, label: "40% 低↔中", color: CHART_COLORS.thresholdMid },
+			{ value: 0.8, label: "80% 中↔高", color: CHART_COLORS.thresholdHigh },
+		].filter((threshold) => threshold.value <= yMax);
 
 		return {
+			margin,
+			plotWidth,
+			plotHeight,
+			visibleStart,
+			visibleEnd,
+			visibleSpan,
+			yMax,
+			yTicks: buildNiceYTicks(yMax),
+			xTicks: buildXTicks(
+				safeViewport,
+				plotWidth,
+				isMobile,
+				isDenseMobilePreset ? "dense-mobile" : "adaptive",
+			),
+			xScale,
+			yScale,
 			observedPath,
 			estimatedPath,
 			ewmaPath,
 			bandPath,
 			regimeBands,
 			thresholds,
-			xScale,
-			yScale,
-			yTicks,
-			xTicks,
-			yMax,
-			W,
-			H,
 		};
-	}, [hasData, steps, dailyReturns, ewma, regimeHistory, result.riskGate, size]);
+	}, [
+		dailyReturns,
+		ewma.values,
+		hasData,
+		isDenseMobilePreset,
+		isMobile,
+		margin,
+		regimeHistory,
+		resolvedViewState.viewport,
+		size,
+		steps,
+	]);
+
+	const resolveIndexFromClientX = useCallback(
+		(clientX: number) => {
+			if (!chart || !plotAreaRef.current) return viewportRef.current.start;
+			const rect = plotAreaRef.current.getBoundingClientRect();
+			const normalized = clampNumber(clientX - rect.left, 0, rect.width);
+			const ratio = rect.width > 0 ? normalized / rect.width : 0.5;
+			const indexOffset =
+				chart.visibleSpan <= 1 ? 0 : Math.round(ratio * (chart.visibleSpan - 1));
+			return chart.visibleStart + indexOffset;
+		},
+		[chart],
+	);
+
+	const handlePointerDown = useCallback(
+		(event: React.PointerEvent<SVGRectElement>) => {
+			if (!chart || !hasData) return;
+
+			event.currentTarget.setPointerCapture(event.pointerId);
+			pointersRef.current.set(event.pointerId, event.clientX);
+
+			if (pointersRef.current.size === 1) {
+				dragRef.current = {
+					startX: event.clientX,
+					startViewport: viewportRef.current,
+				};
+				pinchRef.current = null;
+				return;
+			}
+
+			if (pointersRef.current.size === 2) {
+				const [firstX, secondX] = [...pointersRef.current.values()];
+				pinchRef.current = {
+					startDistance: Math.abs(firstX - secondX),
+					startViewport: viewportRef.current,
+				};
+				dragRef.current = null;
+			}
+		},
+		[chart, hasData],
+	);
+
+	const handlePointerMove = useCallback(
+		(event: React.PointerEvent<SVGRectElement>) => {
+			if (!chart || !hasData) return;
+			if (!pointersRef.current.has(event.pointerId)) return;
+
+			pointersRef.current.set(event.pointerId, event.clientX);
+
+			if (pointersRef.current.size === 2 && pinchRef.current) {
+				const [firstX, secondX] = [...pointersRef.current.values()];
+				const currentDistance = Math.abs(firstX - secondX);
+				if (currentDistance < 4 || pinchRef.current.startDistance < 4) return;
+
+				const midpointX = (firstX + secondX) / 2;
+				const anchor = resolveIndexFromClientX(midpointX);
+				const zoomFactor = currentDistance / pinchRef.current.startDistance;
+				const nextViewport = zoomViewport(
+					pinchRef.current.startViewport,
+					anchor,
+					zoomFactor,
+					totalPoints,
+					minSpan,
+					totalPoints,
+				);
+				updateCustomViewport(nextViewport);
+				return;
+			}
+
+			if (pointersRef.current.size === 1 && dragRef.current && chart.plotWidth > 0) {
+				const deltaX = event.clientX - dragRef.current.startX;
+				const pointsPerPixel =
+					chart.visibleSpan <= 1 ? 0 : (chart.visibleSpan - 1) / chart.plotWidth;
+				const deltaPoints = Math.round(-deltaX * pointsPerPixel);
+				const nextViewport = panViewport(
+					dragRef.current.startViewport,
+					deltaPoints,
+					totalPoints,
+					minSpan,
+				);
+				updateCustomViewport(nextViewport);
+			}
+		},
+		[chart, hasData, minSpan, resolveIndexFromClientX, totalPoints, updateCustomViewport],
+	);
+
+	const finalizePointerState = useCallback(() => {
+		if (pointersRef.current.size === 1) {
+			const remainingX = [...pointersRef.current.values()][0];
+			dragRef.current = {
+				startX: remainingX,
+				startViewport: viewportRef.current,
+			};
+			pinchRef.current = null;
+			return;
+		}
+
+		dragRef.current = null;
+		pinchRef.current = null;
+	}, []);
+
+	const handlePointerUp = useCallback(
+		(event: React.PointerEvent<SVGRectElement>) => {
+			if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+				event.currentTarget.releasePointerCapture(event.pointerId);
+			}
+
+			pointersRef.current.delete(event.pointerId);
+			finalizePointerState();
+		},
+		[finalizePointerState],
+	);
+
+	const handlePointerCancel = useCallback(
+		(event: React.PointerEvent<SVGRectElement>) => {
+			if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+				event.currentTarget.releasePointerCapture(event.pointerId);
+			}
+
+			pointersRef.current.delete(event.pointerId);
+			finalizePointerState();
+		},
+		[finalizePointerState],
+	);
+
+	const handleWheel = useCallback(
+		(event: React.WheelEvent<SVGRectElement>) => {
+			if (!chart || !hasData) return;
+
+			const anchor = resolveIndexFromClientX(event.clientX);
+			const zoomFactor = event.deltaY < 0 ? 1.12 : 0.88;
+			const nextViewport = zoomViewport(
+				viewportRef.current,
+				anchor,
+				zoomFactor,
+				totalPoints,
+				minSpan,
+				totalPoints,
+			);
+			updateCustomViewport(nextViewport);
+		},
+		[chart, hasData, minSpan, resolveIndexFromClientX, totalPoints, updateCustomViewport],
+	);
 
 	if (!hasData) {
 		return (
@@ -225,96 +583,164 @@ export function VolatilityChart({
 		);
 	}
 
-	if (!chart) return null;
+	if (!chart) {
+		return <div ref={containerRef} className="h-full w-full" />;
+	}
+
+	const showObserved = !isMobile || resolvedViewState.showDetails;
+	const showRegimeBands = !isMobile || resolvedViewState.showDetails;
+	const detailLabel = resolvedViewState.showDetails ? "细节开" : "细节关";
+	const isCustomViewport = resolvedViewState.rangePreset === "custom";
+	const showRecentThirtyHint =
+		isDenseMobilePreset && resolvedViewState.rangePreset === 30;
+	const denseTickFontSize = chart.visibleSpan > 14 ? 6.5 : 7;
 
 	return (
-		<div ref={containerRef} className="relative h-full w-full">
-			<svg
-				width={size.width}
-				height={size.height}
-				className="select-none"
-				role="img"
-				aria-label="Volatility Risk Dashboard"
-			>
-				{/* Regime 背景色带 */}
-				{chart.regimeBands.map((band) => {
-					const x1 = chart.xScale(band.start);
-					const x2 = chart.xScale(band.end);
-					return (
-						<rect
-							key={`regime-${band.start}`}
-							x={x1}
-							y={MARGIN.top}
-							width={Math.max(1, x2 - x1)}
-							height={chart.H}
-							fill={REGIME_COLORS[band.regime].bg}
-						/>
-					);
-				})}
+		<div className="relative flex h-full w-full min-h-0 flex-col">
+			<div className="border-b border-[var(--color-bt-border)] px-2 py-2">
+				<div className="grid w-full grid-cols-4 border border-[var(--color-bt-border)] bg-[var(--color-bt-overlay)]">
+					{([30, "all"] as const).map((preset) => {
+						const isActive = resolvedViewState.rangePreset === preset;
+						const label = preset === "all" ? "ALL" : `${preset}D`;
+						return (
+							<button
+								key={preset}
+								type="button"
+								onClick={() => applyPreset(preset)}
+								className={`relative h-10 border-r border-[var(--color-bt-border)] px-2 font-bt-mono text-[10px] uppercase tracking-[0.14em] transition-colors duration-150 ease-[var(--ease-bt)] last:border-r-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-bt-ring)] after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:bg-[var(--color-bt-accent)] after:transition-transform after:duration-150 after:ease-[var(--ease-bt)] ${
+									isActive
+										? "text-[var(--color-bt-accent)] after:scale-x-100"
+										: "text-[var(--color-bt-muted-foreground)] hover:text-[var(--color-bt-foreground)] after:scale-x-0"
+								}`}
+							>
+								{label}
+							</button>
+						);
+					})}
 
-				{/* 网格背景 */}
-				{chart.yTicks.map((v) => (
+					<button
+						type="button"
+						aria-pressed={resolvedViewState.showDetails}
+						onClick={() =>
+							setViewState({
+								key: viewKey,
+								viewport: resolvedViewState.viewport,
+								rangePreset: resolvedViewState.rangePreset,
+								showDetails: !resolvedViewState.showDetails,
+							})
+						}
+						className={`h-10 border-r border-[var(--color-bt-border)] px-2 font-bt-mono text-[10px] tracking-[0.14em] transition-colors duration-150 ease-[var(--ease-bt)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-bt-ring)] ${
+							resolvedViewState.showDetails
+								? "text-[var(--color-bt-foreground)]"
+								: "text-[var(--color-bt-muted-foreground)] hover:text-[var(--color-bt-foreground)]"
+						}`}
+					>
+						{detailLabel}
+					</button>
+
+					<button
+						type="button"
+						onClick={resetViewport}
+						className={`h-10 px-2 font-bt-mono text-[10px] tracking-[0.14em] transition-colors duration-150 ease-[var(--ease-bt)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-bt-ring)] ${
+							isCustomViewport
+								? "text-[var(--color-bt-accent)]"
+								: "text-[var(--color-bt-muted-foreground)] hover:text-[var(--color-bt-foreground)]"
+						}`}
+					>
+						重置
+					</button>
+				</div>
+			</div>
+
+			<div ref={containerRef} className="relative min-h-0 flex-1">
+				<svg
+					width={size.width}
+					height={size.height}
+					className="block h-full w-full select-none"
+					role="img"
+					aria-label="Kalman volatility chart"
+				>
+				{showRegimeBands
+					? chart.regimeBands.map((band) => {
+							const startX = chart.xScale(band.start);
+							const endX = chart.xScale(band.end);
+							const width = Math.max(1, endX - startX);
+							return (
+								<rect
+									key={`${band.regime}-${band.start}-${band.end}`}
+									x={startX}
+									y={margin.top}
+									width={width}
+									height={chart.plotHeight}
+									fill={REGIME_COLORS[band.regime].bg}
+								/>
+							);
+						})
+					: null}
+
+				{chart.yTicks.map((tick) => (
 					<line
-						key={v}
-						x1={MARGIN.left}
-						y1={chart.yScale(v)}
-						x2={MARGIN.left + chart.W}
-						y2={chart.yScale(v)}
+						key={tick}
+						x1={margin.left}
+						y1={chart.yScale(tick)}
+						x2={margin.left + chart.plotWidth}
+						y2={chart.yScale(tick)}
 						stroke={CHART_COLORS.grid}
 						strokeDasharray="2,4"
 					/>
 				))}
 
-				{/* Regime 阈值参考线 */}
-				{chart.thresholds.map((t) => (
-					<g key={`thresh-${t.val}`}>
+				{chart.thresholds.map((threshold) => (
+					<g key={threshold.value}>
 						<line
-							x1={MARGIN.left}
-							y1={chart.yScale(t.val)}
-							x2={MARGIN.left + chart.W}
-							y2={chart.yScale(t.val)}
-							stroke={t.val === 0.4 ? CHART_COLORS.thresholdMid : CHART_COLORS.thresholdHigh}
+							x1={margin.left}
+							y1={chart.yScale(threshold.value)}
+							x2={margin.left + chart.plotWidth}
+							y2={chart.yScale(threshold.value)}
+							stroke={threshold.color}
 							strokeWidth={1}
 							strokeDasharray="6,4"
 							strokeOpacity={0.5}
 						/>
-						<text
-							x={MARGIN.left + chart.W - 4}
-							y={chart.yScale(t.val) - 4}
-							fill={t.val === 0.4 ? CHART_COLORS.thresholdMid : CHART_COLORS.thresholdHigh}
-							fontSize={8}
-							fontFamily="monospace"
-							textAnchor="end"
-							opacity={0.7}
-						>
-							{t.label}
-						</text>
+						{isMobile ? null : (
+							<text
+								x={margin.left + chart.plotWidth - 4}
+								y={chart.yScale(threshold.value) - 4}
+								fill={threshold.color}
+								fontSize={8}
+								fontFamily="var(--font-bt-mono)"
+								textAnchor="end"
+								opacity={0.72}
+							>
+								{threshold.label}
+							</text>
+						)}
 					</g>
 				))}
 
-				{/* 置信带 */}
-				<path d={chart.bandPath} fill={CHART_COLORS.band} fillOpacity={0.08} />
+				{chart.bandPath ? (
+					<path d={chart.bandPath} fill={CHART_COLORS.band} fillOpacity={0.09} />
+				) : null}
 
-				{/* 观测折线（原始噪声） */}
-				<path
-					d={chart.observedPath}
-					fill="none"
-					stroke={CHART_COLORS.observed}
-					strokeWidth={0.8}
-					strokeOpacity={0.4}
-				/>
+				{showObserved ? (
+					<path
+						d={chart.observedPath}
+						fill="none"
+						stroke={CHART_COLORS.observed}
+						strokeWidth={0.8}
+						strokeOpacity={0.35}
+					/>
+				) : null}
 
-				{/* EWMA 对比线 */}
 				<path
 					d={chart.ewmaPath}
 					fill="none"
 					stroke={CHART_COLORS.ewma}
-					strokeWidth={1.5}
+					strokeWidth={1.4}
 					strokeDasharray="4,3"
-					strokeOpacity={0.8}
+					strokeOpacity={0.9}
 				/>
 
-				{/* 滤波估计折线 */}
 				<path
 					d={chart.estimatedPath}
 					fill="none"
@@ -322,141 +748,197 @@ export function VolatilityChart({
 					strokeWidth={2}
 				/>
 
-				{/* Y 轴 */}
 				<line
-					x1={MARGIN.left}
-					y1={MARGIN.top}
-					x2={MARGIN.left}
-					y2={MARGIN.top + chart.H}
+					x1={margin.left}
+					y1={margin.top}
+					x2={margin.left}
+					y2={margin.top + chart.plotHeight}
 					stroke={CHART_COLORS.grid}
 				/>
-				{chart.yTicks.map((v) => (
+				{chart.yTicks.map((tick) => (
 					<text
-						key={v}
-						x={MARGIN.left - 8}
-						y={chart.yScale(v) + 3}
+						key={`y-${tick}`}
+						x={margin.left - 7}
+						y={chart.yScale(tick) + 3}
 						fill={CHART_COLORS.axis}
-						fontSize={9}
+						fontSize={isMobile ? 8 : 9}
 						textAnchor="end"
-						fontFamily="monospace"
+						fontFamily="var(--font-bt-mono)"
 					>
-						{(v * 100).toFixed(0)}%
+						{(tick * 100).toFixed(0)}%
 					</text>
 				))}
 
-				{/* X 轴 */}
 				<line
-					x1={MARGIN.left}
-					y1={MARGIN.top + chart.H}
-					x2={MARGIN.left + chart.W}
-					y2={MARGIN.top + chart.H}
+					x1={margin.left}
+					y1={margin.top + chart.plotHeight}
+					x2={margin.left + chart.plotWidth}
+					y2={margin.top + chart.plotHeight}
 					stroke={CHART_COLORS.grid}
 				/>
-				{chart.xTicks.map((t) => (
+				{isDenseMobilePreset
+					? Array.from({ length: chart.visibleSpan }, (_, offset) => {
+							const index = chart.visibleStart + offset;
+							const tickX = chart.xScale(index);
+							return (
+								<line
+									key={`minor-${index}`}
+									x1={tickX}
+									y1={margin.top + chart.plotHeight}
+									x2={tickX}
+									y2={margin.top + chart.plotHeight + 5}
+									stroke={CHART_COLORS.grid}
+									strokeOpacity={0.75}
+								/>
+							);
+						})
+					: null}
+				{chart.xTicks.map((tick) => (
 					<text
-						key={t}
-						x={chart.xScale(t)}
-						y={MARGIN.top + chart.H + 18}
+						key={`x-${tick.index}-${tick.row}`}
+						x={chart.xScale(tick.index)}
+						y={
+							margin.top +
+							chart.plotHeight +
+							(isDenseMobilePreset
+								? tick.row === 0
+									? 15
+									: 29
+								: isMobile
+									? 14
+									: 18)
+						}
 						fill={CHART_COLORS.axis}
-						fontSize={9}
-						textAnchor="middle"
-						fontFamily="monospace"
+						fontSize={
+							isDenseMobilePreset ? denseTickFontSize : isMobile ? 8 : 9
+						}
+						textAnchor={tick.anchor}
+						fontFamily="var(--font-bt-mono)"
 					>
-						{t + 1}天
+						{tick.label}
 					</text>
 				))}
+				{showRecentThirtyHint ? (
+					<text
+						x={margin.left + chart.plotWidth}
+						y={margin.top + chart.plotHeight + 44}
+						fill={CHART_COLORS.axis}
+						fontSize={7}
+						textAnchor="end"
+						fontFamily="var(--font-bt-mono)"
+						opacity={0.72}
+					>
+						最近30天（右侧最新）
+					</text>
+				) : null}
 
-				{/* 轴标签 */}
-				<text
-					x={MARGIN.left + chart.W / 2}
-					y={size.height - 8}
-					fill={CHART_COLORS.axis}
-					fontSize={11}
-					textAnchor="middle"
-				>
-					交易日
-				</text>
-				<text
-					x={14}
-					y={MARGIN.top + chart.H / 2}
-					fill={CHART_COLORS.axis}
-					fontSize={11}
-					textAnchor="middle"
-					transform={`rotate(-90, 14, ${MARGIN.top + chart.H / 2})`}
-				>
-					年化波动率
-				</text>
+				{isMobile ? null : (
+					<>
+						<text
+							x={margin.left + chart.plotWidth / 2}
+							y={size.height - 8}
+							fill={CHART_COLORS.axis}
+							fontSize={11}
+							textAnchor="middle"
+						>
+							交易日
+						</text>
+						<text
+							x={14}
+							y={margin.top + chart.plotHeight / 2}
+							fill={CHART_COLORS.axis}
+							fontSize={11}
+							textAnchor="middle"
+							transform={`rotate(-90, 14, ${margin.top + chart.plotHeight / 2})`}
+						>
+							年化波动率
+						</text>
+					</>
+				)}
 
-				{/* 图例 */}
-				<g transform={`translate(${MARGIN.left + 10}, ${MARGIN.top + 8})`}>
+				<g transform={`translate(${margin.left + 10}, ${margin.top + 6})`}>
 					<line
 						x1={0}
 						y1={0}
-						x2={20}
+						x2={18}
 						y2={0}
-						stroke={CHART_COLORS.observed}
-						strokeWidth={1}
-						strokeOpacity={0.5}
-					/>
-					<text x={25} y={3} fill={CHART_COLORS.axis} fontSize={9}>
-						原始观测 |r_t|
-					</text>
-
-					<line
-						x1={0}
-						y1={16}
-						x2={20}
-						y2={16}
 						stroke={CHART_COLORS.kalman}
 						strokeWidth={2}
 					/>
-					<text x={25} y={19} fill={CHART_COLORS.kalman} fontSize={9}>
+					<text x={22} y={3} fill={CHART_COLORS.kalman} fontSize={isMobile ? 8 : 9}>
 						Kalman σ̂
 					</text>
 
 					<line
 						x1={0}
-						y1={32}
-						x2={20}
-						y2={32}
+						y1={14}
+						x2={18}
+						y2={14}
 						stroke={CHART_COLORS.ewma}
-						strokeWidth={1.5}
+						strokeWidth={1.4}
 						strokeDasharray="4,3"
 					/>
-					<text x={25} y={35} fill={CHART_COLORS.ewma} fontSize={9}>
-						EWMA 20d
+					<text x={22} y={17} fill={CHART_COLORS.ewma} fontSize={isMobile ? 8 : 9}>
+						EWMA
 					</text>
 
-					<rect
-						x={0}
-						y={44}
-						width={20}
-						height={8}
-						fill={CHART_COLORS.band}
-						fillOpacity={0.15}
-					/>
-					<text x={25} y={51} fill={CHART_COLORS.axis} fontSize={9}>
-						置信区间
-					</text>
+					{showObserved ? (
+						<>
+							<line
+								x1={0}
+								y1={28}
+								x2={18}
+								y2={28}
+								stroke={CHART_COLORS.observed}
+								strokeWidth={1}
+								strokeOpacity={0.5}
+							/>
+							<text x={22} y={31} fill={CHART_COLORS.axis} fontSize={isMobile ? 8 : 9}>
+								|r_t|
+							</text>
+						</>
+					) : null}
+				</g>
 
-					{/* Phase 指示胶囊 */}
+				<g transform={`translate(${margin.left + chart.plotWidth - 84}, ${margin.top + 6})`}>
 					<rect
 						x={0}
-						y={60}
-						width={70}
-						height={14}
-						rx={3}
+						y={0}
+						width={78}
+						height={16}
 						fill={phaseColor}
-						fillOpacity={0.15}
+						fillOpacity={0.14}
 						stroke={phaseColor}
-						strokeOpacity={0.3}
-						strokeWidth={0.5}
+						strokeOpacity={0.35}
+						strokeWidth={0.6}
 					/>
-					<text x={6} y={70} fill={phaseColor} fontSize={8} fontFamily="monospace">
+					<text
+						x={6}
+						y={11}
+						fill={phaseColor}
+						fontSize={isMobile ? 7 : 8}
+						fontFamily="var(--font-bt-mono)"
+					>
 						{result.momentum.phaseLabel}
 					</text>
 				</g>
-			</svg>
+
+				<rect
+					ref={plotAreaRef}
+					x={margin.left}
+					y={margin.top}
+					width={chart.plotWidth}
+					height={chart.plotHeight}
+					fill="transparent"
+					onPointerDown={handlePointerDown}
+					onPointerMove={handlePointerMove}
+					onPointerUp={handlePointerUp}
+					onPointerCancel={handlePointerCancel}
+					onWheel={handleWheel}
+					style={{ touchAction: "none", cursor: "grab" }}
+				/>
+				</svg>
+			</div>
 		</div>
 	);
 }

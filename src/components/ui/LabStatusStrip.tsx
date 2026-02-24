@@ -58,6 +58,7 @@ export const LabStatusStrip = ({
 
 	return (
 		<section
+			id="lab-status-strip"
 			className={combineClasses(
 				"border border-[var(--color-bt-border)] bg-[var(--color-bt-overlay)] px-4 py-3 md:px-5",
 				className,

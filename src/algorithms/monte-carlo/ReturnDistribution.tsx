@@ -8,6 +8,7 @@ interface ReturnDistributionProps {
 	latestDataDate?: string | null;
 	showLatestDataDate?: boolean;
 	showDecisionPanel?: boolean;
+	layoutMode?: "full" | "compact" | "compact-h5";
 }
 
 interface DistributionData {
@@ -135,6 +136,7 @@ export function ReturnDistribution({
 	latestDataDate = null,
 	showLatestDataDate = true,
 	showDecisionPanel = true,
+	layoutMode = "full",
 }: ReturnDistributionProps) {
 	const data = useMemo(() => {
 		const visiblePrices = terminalPrices.slice(0, Math.max(1, visiblePaths));
@@ -142,21 +144,30 @@ export function ReturnDistribution({
 	}, [terminalPrices, initialPrice, visiblePaths]);
 
 	const { bins, stats, densityCurve } = data;
+	const isCompactLayout = layoutMode !== "full";
+	const isCompactH5 = layoutMode === "compact-h5";
 
-	const width = 800;
-	const height = 400;
-	const padding = {
-		top: showLatestDataDate ? 70 : 58,
-		right: showDecisionPanel ? 130 : 28,
-		bottom: 60,
-		left: 60,
-	};
+	const width = isCompactH5 ? 640 : isCompactLayout ? 720 : 800;
+	const height = isCompactH5 ? 720 : isCompactLayout ? 320 : 400;
+	const padding = isCompactH5
+		? {
+				top: 52,
+				right: 10,
+				bottom: 56,
+				left: 26,
+			}
+		: {
+				top: isCompactLayout ? 42 : showLatestDataDate ? 70 : 58,
+				right: isCompactLayout ? 22 : showDecisionPanel ? 130 : 28,
+				bottom: isCompactLayout ? 50 : 60,
+				left: isCompactLayout ? 44 : 60,
+			};
 	const chartWidth = width - padding.left - padding.right;
 	const chartHeight = height - padding.top - padding.bottom;
 
 	const dataMin = Math.min(stats.maxLoss, stats.cvar95, -5);
 	const dataMax = Math.max(stats.maxGain, stats.p95, 5);
-	const xPadding = (dataMax - dataMin) * 0.1;
+	const xPadding = (dataMax - dataMin) * (isCompactH5 ? 0.06 : 0.1);
 	const xMin = Math.floor(dataMin - xPadding);
 	const xMax = Math.ceil(dataMax + xPadding);
 
@@ -186,23 +197,37 @@ export function ReturnDistribution({
 		{ x: p95X, label: "p95" },
 	];
 	const labelOffsets = resolveLabels(labelPositions);
-	const labelY = (index: number) => Math.max(12, padding.top - 10 + labelOffsets[index]);
+	const labelY = (index: number) => {
+		const y = Math.max(12, padding.top - 10 + labelOffsets[index]);
+		if (isCompactH5) {
+			return Math.min(padding.top - 6, y);
+		}
+		return y;
+	};
 
-	const generateTicks = (min: number, max: number) => {
-		const step = (max - min) / 4;
-		return [0, 1, 2, 3, 4].map((index) => {
+	const generateTicks = (min: number, max: number, tickCount: number) => {
+		if (tickCount <= 1) return [Math.round(min)];
+		const step = (max - min) / (tickCount - 1);
+		return Array.from({ length: tickCount }, (_, index) => {
 			const value = min + index * step;
 			return Math.abs(value) < 10 ? Number(value.toFixed(1)) : Math.round(value);
 		});
 	};
-	const ticks = generateTicks(xMin, xMax);
+	const ticks = generateTicks(xMin, xMax, isCompactLayout ? 3 : 5);
+	const markerFontSize = isCompactH5 ? 10 : isCompactLayout ? 9 : 10;
+	const zeroLabelFontSize = isCompactLayout ? 10 : 11;
+	const axisLabelFontSize = isCompactH5 ? 11 : isCompactLayout ? 10 : 12;
+	const xTickFontSize = isCompactH5 ? 10 : isCompactLayout ? 9 : 10;
+	const preserveAspectRatio = isCompactH5 ? "xMidYMin meet" : "xMidYMid meet";
+	const zeroLineOpacity = isCompactH5 ? 0.45 : 1;
+	const p50LineOpacity = isCompactH5 ? 0.4 : 1;
 
 	return (
 		<div className="flex h-full w-full flex-col">
 			<svg
 				viewBox={`0 0 ${width} ${height}`}
 				className="h-full w-full"
-				preserveAspectRatio="xMidYMid meet"
+				preserveAspectRatio={preserveAspectRatio}
 			>
 				<defs>
 					<linearGradient id="profitGrad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -268,25 +293,44 @@ export function ReturnDistribution({
 					x2={zeroX}
 					y2={padding.top + chartHeight}
 					stroke="var(--color-bt-foreground)"
-					strokeWidth={2}
+					strokeWidth={isCompactH5 ? 1.5 : 2}
 					strokeDasharray="4,4"
+					strokeOpacity={zeroLineOpacity}
 				/>
-				<text x={zeroX} y={labelY(3)} fill="var(--color-bt-foreground)" fontSize={11} textAnchor="middle">
-					盈亏平衡
-				</text>
+				{isCompactLayout ? null : (
+					<text
+						x={zeroX}
+						y={labelY(3)}
+						fill="var(--color-bt-foreground)"
+						fontSize={zeroLabelFontSize}
+						textAnchor="middle"
+					>
+						盈亏平衡
+					</text>
+				)}
 
-				<line
-					x1={cvar95X}
-					y1={padding.top}
-					x2={cvar95X}
-					y2={padding.top + chartHeight}
-					stroke="var(--color-bt-danger)"
-					strokeWidth={1.5}
-					strokeDasharray="3,3"
-				/>
-				<text x={cvar95X} y={labelY(0)} fill="var(--color-bt-danger)" fontSize={10} textAnchor="middle">
-					CVaR95: {stats.cvar95.toFixed(1)}%
-				</text>
+				{isCompactLayout ? null : (
+					<>
+						<line
+							x1={cvar95X}
+							y1={padding.top}
+							x2={cvar95X}
+							y2={padding.top + chartHeight}
+							stroke="var(--color-bt-danger)"
+							strokeWidth={1.5}
+							strokeDasharray="3,3"
+						/>
+						<text
+							x={cvar95X}
+							y={labelY(0)}
+							fill="var(--color-bt-danger)"
+							fontSize={markerFontSize}
+							textAnchor="middle"
+						>
+							CVaR95: {stats.cvar95.toFixed(1)}%
+						</text>
+					</>
+				)}
 
 				<line
 					x1={p05X}
@@ -296,7 +340,13 @@ export function ReturnDistribution({
 					stroke="var(--color-bt-danger)"
 					strokeWidth={1.5}
 				/>
-				<text x={p05X} y={labelY(1)} fill="var(--color-bt-danger)" fontSize={10} textAnchor="middle">
+				<text
+					x={p05X}
+					y={labelY(1)}
+					fill="var(--color-bt-danger)"
+					fontSize={markerFontSize}
+					textAnchor="middle"
+				>
 					P5: {stats.p05.toFixed(1)}%
 				</text>
 
@@ -309,7 +359,13 @@ export function ReturnDistribution({
 					strokeWidth={1.5}
 					strokeDasharray="3,3"
 				/>
-				<text x={p95X} y={labelY(4)} fill="var(--color-bt-success)" fontSize={10} textAnchor="middle">
+				<text
+					x={p95X}
+					y={labelY(4)}
+					fill="var(--color-bt-success)"
+					fontSize={markerFontSize}
+					textAnchor="middle"
+				>
 					P95: +{stats.p95.toFixed(1)}%
 				</text>
 
@@ -320,11 +376,20 @@ export function ReturnDistribution({
 					y2={padding.top + chartHeight}
 					stroke="var(--color-bt-muted-foreground)"
 					strokeWidth={1.5}
+					strokeOpacity={p50LineOpacity}
 				/>
-				<text x={medianX} y={labelY(2)} fill="var(--color-bt-muted-foreground)" fontSize={10} textAnchor="middle">
-					P50: {stats.median > 0 ? "+" : ""}
-					{stats.median.toFixed(1)}%
-				</text>
+				{isCompactH5 ? null : (
+					<text
+						x={medianX}
+						y={labelY(2)}
+						fill="var(--color-bt-muted-foreground)"
+						fontSize={markerFontSize}
+						textAnchor="middle"
+					>
+						P50: {stats.median > 0 ? "+" : ""}
+						{stats.median.toFixed(1)}%
+					</text>
+				)}
 
 				<line
 					x1={padding.left}
@@ -334,7 +399,7 @@ export function ReturnDistribution({
 					stroke="var(--color-bt-border)"
 					strokeWidth={1}
 				/>
-				{ticks.map((tick) => (
+				{ticks.map((tick, index) => (
 					<g key={tick}>
 						<line
 							x1={xScale(tick)}
@@ -347,8 +412,10 @@ export function ReturnDistribution({
 							x={xScale(tick)}
 							y={padding.top + chartHeight + 18}
 							fill="var(--color-bt-muted-foreground)"
-							fontSize={10}
-							textAnchor="middle"
+							fontSize={xTickFontSize}
+							textAnchor={
+								index === 0 ? "start" : index === ticks.length - 1 ? "end" : "middle"
+							}
 						>
 							{tick > 0 ? "+" : ""}
 							{tick}%
@@ -359,22 +426,24 @@ export function ReturnDistribution({
 					x={padding.left + chartWidth / 2}
 					y={height - 15}
 					fill="var(--color-bt-muted-foreground)"
-					fontSize={12}
+					fontSize={axisLabelFontSize}
 					textAnchor="middle"
 				>
 					收益率 (%)
 				</text>
 
-				<text
-					x={15}
-					y={padding.top + chartHeight / 2}
-					fill="var(--color-bt-muted-foreground)"
-					fontSize={12}
-					textAnchor="middle"
-					transform={`rotate(-90, 15, ${padding.top + chartHeight / 2})`}
-				>
-					概率密度
-				</text>
+				{isCompactLayout ? null : (
+					<text
+						x={15}
+						y={padding.top + chartHeight / 2}
+						fill="var(--color-bt-muted-foreground)"
+						fontSize={12}
+						textAnchor="middle"
+						transform={`rotate(-90, 15, ${padding.top + chartHeight / 2})`}
+					>
+						概率密度
+					</text>
+				)}
 
 				{showLatestDataDate && latestDataDate ? (
 					<text
